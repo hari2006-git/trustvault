@@ -373,6 +373,7 @@ public class DocumentController {
     private static DocumentResponse toResponse(Document document) {
         return new DocumentResponse(
                 document.getId(),
+                document.getOwner().getId(),
                 document.getOriginalName(),
                 document.getContentType(),
                 document.getSizeBytes(),
@@ -382,6 +383,7 @@ public class DocumentController {
 
     public record DocumentResponse(
             UUID id,
+            UUID ownerId,
             String originalName,
             String contentType,
             Long sizeBytes,

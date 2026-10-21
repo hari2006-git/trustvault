@@ -994,7 +994,7 @@
                     </button>
                 </div>
                 <!-- Document search and filters -->
-                
+
                 <!-- Dashboard insights: real data from the document API -->
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;padding:20px 25px;border-bottom:1px solid #eee8f7;">
                     <section aria-labelledby="recentUploadsTitle">
@@ -1152,18 +1152,74 @@
                     </div>
                 </div>
 
+
                 <div style="padding:23px 25px">
-                    <div style="display:flex;align-items:flex-start;gap:13px">
-                        <div class="section-icon">⌁</div>
-                        <div>
-                            <h3 style="margin:2px 0 8px;font-size:13px">
-                                Activity history is not available yet
-                            </h3>
-                            <p style="margin:0;color:#827895;font-size:12px;line-height:1.9">
-                                A proper audit log will require a dedicated
-                                backend feature. This section will not display
-                                fabricated events.
-                            </p>
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:18px">
+                        <label style="flex:1;min-width:180px;font-size:12px">
+                            Search audit events
+                            <input id="auditSearch" type="search"
+                                placeholder="Actor, document, target or reason"
+                                style="display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border:1px solid #ddd6e8;border-radius:8px">
+                        </label>
+                        <label style="flex:1;min-width:150px;font-size:12px">
+                            Action
+                            <input id="auditAction" type="text"
+                                placeholder="Exact action value"
+                                style="display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border:1px solid #ddd6e8;border-radius:8px">
+                        </label>
+                        <label style="min-width:130px;font-size:12px">
+                            Outcome
+                            <select id="auditOutcome"
+                                style="display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border:1px solid #ddd6e8;border-radius:8px">
+                                <option value="">All outcomes</option>
+                                <option value="SUCCESS">Success</option>
+                                <option value="DENIED">Denied</option>
+                                <option value="FAILURE">Failure</option>
+                            </select>
+                        </label>
+                        <button id="auditApply" type="button"
+                            style="padding:10px 16px;border:0;border-radius:8px;cursor:pointer">
+                            Apply filters
+                        </button>
+                        <button id="auditRefresh" type="button"
+                            style="padding:10px 16px;border:1px solid #ddd6e8;border-radius:8px;cursor:pointer">
+                            Refresh
+                        </button>
+                    </div>
+
+                    <p id="auditMessage" role="status" aria-live="polite"
+                        style="margin:0 0 14px;color:#827895;font-size:12px">
+                        Loading audit events…
+                    </p>
+
+                    <div style="overflow-x:auto">
+                        <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left">
+                            <thead>
+                                <tr>
+                                    <th style="padding:11px;border-bottom:1px solid #e9e3f0">Time</th>
+                                    <th style="padding:11px;border-bottom:1px solid #e9e3f0">Actor</th>
+                                    <th style="padding:11px;border-bottom:1px solid #e9e3f0">Action</th>
+                                    <th style="padding:11px;border-bottom:1px solid #e9e3f0">Outcome</th>
+                                    <th style="padding:11px;border-bottom:1px solid #e9e3f0">Document / Target</th>
+                                    <th style="padding:11px;border-bottom:1px solid #e9e3f0">Reason</th>
+                                    <th style="padding:11px;border-bottom:1px solid #e9e3f0">Event</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditEventsBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px">
+                        <span id="auditPageInfo" style="font-size:12px;color:#827895">No events loaded</span>
+                        <div style="display:flex;gap:8px">
+                            <button id="auditPrevious" type="button" disabled
+                                style="padding:8px 12px;border:1px solid #ddd6e8;border-radius:8px;cursor:pointer">
+                                Previous
+                            </button>
+                            <button id="auditNext" type="button" disabled
+                                style="padding:8px 12px;border:1px solid #ddd6e8;border-radius:8px;cursor:pointer">
+                                Next
+                            </button>
                         </div>
                     </div>
                 </div>

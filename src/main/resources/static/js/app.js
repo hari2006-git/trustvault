@@ -32,6 +32,29 @@ document.addEventListener("DOMContentLoaded", () => {
     let searchTimer = null;
     let searchRequestId = 0;
     let isLoading = false;
+    let currentUser = null;
+
+    async function loadCurrentUser() {
+        const response = await fetch("/api/me", {
+            credentials: "same-origin",
+            headers: { Accept: "application/json" }
+        });
+
+        if (!response.ok) {
+            throw new Error("Could not determine the current user's role.");
+        }
+
+        currentUser = await response.json();
+
+        if (uploadForm) {
+            uploadForm.hidden = currentUser.role !== "OWNER";
+        }
+
+        const activitySection = document.getElementById("activity");
+        if (activitySection) {
+            activitySection.hidden = currentUser.role !== "ADMIN";
+        }
+    }
 
     function formatBytes(bytes) {
         if (
@@ -172,6 +195,338 @@ document.addEventListener("DOMContentLoaded", () => {
         return meta;
     }
 
+
+    // TRUSTVAULT_PERMISSION_UI_V1
+    async function openPermissionManager(item) {
+        if (!document.getElementById("trustVaultPermissionStyles")) {
+            const style = document.createElement("style");
+            style.id = "trustVaultPermissionStyles";
+            style.textContent = `
+                .tv-permission-dialog {
+                    width: min(560px, calc(100% - 32px));
+                    max-height: 85vh;
+                    overflow: auto;
+                    padding: 24px;
+                    border: 1px solid #d8dce5;
+                    border-radius: 16px;
+                    color: #202536;
+                    background: #fff;
+                    box-shadow: 0 24px 80px #0003;
+                }
+                .tv-permission-dialog::backdrop {
+                    background: #11182799;
+                }
+                .tv-permission-dialog h2 { margin-top: 0; }
+                .tv-permission-dialog label {
+                    display: block;
+                    margin: 12px 0 6px;
+                    font-weight: 600;
+                }
+                .tv-permission-dialog input,
+                .tv-permission-dialog select {
+                    box-sizing: border-box;
+                    width: 100%;
+                    min-height: 42px;
+                    padding: 9px 11px;
+                    border: 1px solid #cbd0dc;
+                    border-radius: 8px;
+                    font: inherit;
+                }
+                .tv-permission-dialog button {
+                    cursor: pointer;
+                    padding: 9px 13px;
+                    border: 1px solid #d1d5df;
+                    border-radius: 8px;
+                    background: #f8fafc;
+                    color: #202536;
+                    font: inherit;
+                }
+                .tv-permission-dialog button:disabled {
+                    cursor: wait;
+                    opacity: .6;
+                }
+                .tv-permission-heading,
+                .tv-permission-row,
+                .tv-permission-actions {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                }
+                .tv-permission-heading { margin-bottom: 18px; }
+                .tv-permission-row {
+                    padding: 12px 0;
+                    border-bottom: 1px solid #e5e7eb;
+                    flex-wrap: wrap;
+                }
+                .tv-permission-email { overflow-wrap: anywhere; }
+                .tv-permission-subtitle {
+                    color: #647084;
+                    font-size: 13px;
+                }
+                .tv-permission-status {
+                    min-height: 22px;
+                    margin: 12px 0;
+                    overflow-wrap: anywhere;
+                }
+                .tv-permission-revoke {
+                    color: #b42318 !important;
+                }
+                .tv-permission-grant {
+                    margin-top: 14px;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        const dialog = document.createElement("dialog");
+        dialog.className = "tv-permission-dialog";
+        dialog.setAttribute("aria-labelledby", "tvPermissionTitle");
+
+        const heading = document.createElement("div");
+        heading.className = "tv-permission-heading";
+
+        const title = document.createElement("h2");
+        title.id = "tvPermissionTitle";
+        title.textContent = "Manage document access";
+
+        const closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.textContent = "Close";
+        closeButton.addEventListener("click", () => dialog.close());
+        heading.append(title, closeButton);
+
+        const documentName = document.createElement("p");
+        documentName.className = "tv-permission-subtitle";
+        documentName.textContent =
+            item.originalName || "Untitled document";
+
+        const status = document.createElement("p");
+        status.className = "tv-permission-status";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+
+        const form = document.createElement("form");
+        const emailLabel = document.createElement("label");
+        emailLabel.textContent = "Registered user's email";
+
+        const email = document.createElement("input");
+        email.type = "email";
+        email.required = true;
+        email.maxLength = 320;
+        email.autocomplete = "email";
+        email.placeholder = "user@example.com";
+        emailLabel.appendChild(email);
+
+        const accessLabel = document.createElement("label");
+        accessLabel.textContent = "Permission";
+
+        const access = document.createElement("select");
+        for (const [value, label] of [
+            ["READ", "READ — view and download"],
+            ["EDIT", "EDIT — modify access-controlled content"]
+        ]) {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = label;
+            access.appendChild(option);
+        }
+        accessLabel.appendChild(access);
+
+        const grantButton = document.createElement("button");
+        grantButton.type = "submit";
+        grantButton.className = "tv-permission-grant";
+        grantButton.textContent = "Grant access";
+
+        form.append(emailLabel, accessLabel, grantButton);
+
+        const listHeading = document.createElement("h3");
+        listHeading.textContent = "Current access";
+
+        const permissionList = document.createElement("div");
+        permissionList.setAttribute("aria-live", "polite");
+
+        dialog.append(
+            heading, documentName, status, form,
+            listHeading, permissionList
+        );
+        document.body.appendChild(dialog);
+        dialog.addEventListener("close", () => dialog.remove(), {
+            once: true
+        });
+        dialog.showModal();
+
+        const endpoint =
+            `/api/documents/${encodeURIComponent(item.id)}/permissions`;
+
+        async function refreshPermissions() {
+            permissionList.replaceChildren();
+
+            const response = await fetch(endpoint, {
+                method: "GET",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: { Accept: "application/json" }
+            });
+
+            if (!response.ok) {
+                throw new Error(await responseError(response));
+            }
+
+            const permissions = await response.json();
+            const active = permissions.filter(
+                permission => !permission.revokedAt
+            );
+
+            if (active.length === 0) {
+                const empty = document.createElement("p");
+                empty.className = "tv-permission-subtitle";
+                empty.textContent = "No active permission grants.";
+                permissionList.appendChild(empty);
+                return;
+            }
+
+            for (const permission of active) {
+                const row = document.createElement("div");
+                row.className = "tv-permission-row";
+
+                const details = document.createElement("div");
+                const recipient = document.createElement("div");
+                recipient.className = "tv-permission-email";
+                recipient.textContent =
+                    permission.displayName
+                        ? `${permission.displayName} (${permission.email})`
+                        : permission.email;
+
+                const level = document.createElement("div");
+                level.className = "tv-permission-subtitle";
+                level.textContent =
+                    `${permission.permission} access`;
+
+                details.append(recipient, level);
+
+                const revokeButton = document.createElement("button");
+                revokeButton.type = "button";
+                revokeButton.className = "tv-permission-revoke";
+                revokeButton.textContent = "Revoke";
+
+                revokeButton.addEventListener("click", async () => {
+                    if (!window.confirm(
+                        `Revoke access for ${permission.email}?`
+                    )) return;
+
+                    revokeButton.disabled = true;
+                    status.textContent = "Revoking access…";
+
+                    try {
+                        const csrf = await getCsrfToken();
+                        const response = await fetch(
+                            `${endpoint}/${encodeURIComponent(
+                                permission.permissionId
+                            )}`,
+                            {
+                                method: "DELETE",
+                                credentials: "same-origin",
+                                headers: {
+                                    Accept: "application/json",
+                                    [csrf.headerName]: csrf.token
+                                }
+                            }
+                        );
+
+                        if (!response.ok) {
+                            throw new Error(await responseError(response));
+                        }
+
+                        status.textContent =
+                            "Access revoked successfully.";
+                        await refreshPermissions();
+                    } catch (error) {
+                        status.textContent =
+                            error.message || "Could not revoke access.";
+                        revokeButton.disabled = false;
+                    }
+                });
+
+                row.append(details, revokeButton);
+                permissionList.appendChild(row);
+            }
+        }
+
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+            if (!form.reportValidity()) return;
+
+            grantButton.disabled = true;
+            status.textContent = "Granting access…";
+
+            try {
+                const csrf = await getCsrfToken();
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json",
+                        [csrf.headerName]: csrf.token
+                    },
+                    body: JSON.stringify({
+                        email: email.value.trim(),
+                        permission: access.value
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(await responseError(response));
+                }
+
+                email.value = "";
+                status.textContent = "Access granted successfully.";
+                await refreshPermissions();
+            } catch (error) {
+                status.textContent =
+                    error.message || "Could not grant access.";
+            } finally {
+                grantButton.disabled = false;
+            }
+        });
+
+        try {
+            await refreshPermissions();
+        } catch (error) {
+            status.textContent =
+                error.message || "Could not load current permissions.";
+        }
+    }
+
+    function createPermissionButton(item) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "document-share";
+        button.textContent = "Manage access";
+        button.setAttribute(
+            "aria-label",
+            `Manage access for ${item.originalName || "document"}`
+        );
+
+        button.addEventListener("click", () => {
+            button.disabled = true;
+            openPermissionManager(item)
+                .catch(error => {
+                    showMessage(
+                        documentsMessage,
+                        error.message || "Could not open access management.",
+                        "error"
+                    );
+                })
+                .finally(() => {
+                    button.disabled = false;
+                });
+        });
+
+        return button;
+    }
+
     function makeDocumentRow(item) {
         const row = document.createElement("article");
         row.className = "document-row";
@@ -210,6 +565,14 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
         actions.appendChild(download);
+
+        const canManageDocument =
+            currentUser !== null
+            && currentUser.role === "OWNER"
+            && String(item.ownerId) === String(currentUser.id);
+
+        if (canManageDocument) {
+            actions.appendChild(createPermissionButton(item));
 
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
@@ -269,6 +632,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         actions.appendChild(deleteButton);
+        }
+
         row.append(left, actions);
 
         return row;
@@ -863,5 +1228,224 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    loadDocuments();
+    loadCurrentUser()
+        .then(() => loadDocuments())
+        .catch(error => {
+            console.error("Role initialization failed:", error);
+
+            // Fail closed for owner/admin UI controls.
+            if (uploadForm) uploadForm.hidden = true;
+
+            const activitySection = document.getElementById("activity");
+            if (activitySection) activitySection.hidden = true;
+
+            currentUser = null;
+            loadDocuments();
+        });
+});
+
+// TRUSTVAULT_AUDIT_UI_V1
+document.addEventListener("DOMContentLoaded", () => {
+    const body = document.getElementById("auditEventsBody");
+    if (!body) return;
+
+    const message = document.getElementById("auditMessage");
+    const pageInfo = document.getElementById("auditPageInfo");
+    const searchInput = document.getElementById("auditSearch");
+    const actionInput = document.getElementById("auditAction");
+    const outcomeInput = document.getElementById("auditOutcome");
+    const applyButton = document.getElementById("auditApply");
+    const refreshButton = document.getElementById("auditRefresh");
+    const previousButton = document.getElementById("auditPrevious");
+    const nextButton = document.getElementById("auditNext");
+
+    let currentPage = 0;
+    const pageSize = 25;
+    let requestNumber = 0;
+
+    function setMessage(text) {
+        message.textContent = text;
+    }
+
+    function addCell(row, value) {
+        const cell = document.createElement("td");
+        cell.style.padding = "11px";
+        cell.style.borderBottom = "1px solid #f0ebf5";
+        cell.style.verticalAlign = "top";
+        cell.textContent =
+            value === null || value === undefined || value === ""
+                ? "—"
+                : String(value);
+        row.appendChild(cell);
+    }
+
+    function formatTime(value) {
+        if (!value) return "—";
+        const date = new Date(value);
+        return Number.isNaN(date.getTime())
+            ? String(value)
+            : date.toLocaleString();
+    }
+
+    function showEmptyRow(text) {
+        body.replaceChildren();
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = 7;
+        cell.style.padding = "20px 11px";
+        cell.style.color = "#827895";
+        cell.textContent = text;
+        row.appendChild(cell);
+        body.appendChild(row);
+    }
+
+    function renderEvents(events) {
+        body.replaceChildren();
+
+        if (!Array.isArray(events) || events.length === 0) {
+            showEmptyRow("No audit events match these filters.");
+            return;
+        }
+
+        for (const event of events) {
+            const row = document.createElement("tr");
+            addCell(row, formatTime(event.eventTime));
+            addCell(row, event.actorEmail);
+            addCell(row, event.action);
+            addCell(row, event.outcome);
+
+            const documentAndTarget = [
+                event.documentName,
+                event.targetEmail ? "Target: " + event.targetEmail : ""
+            ].filter(Boolean).join("\n");
+            addCell(row, documentAndTarget);
+
+            addCell(row, event.reasonCode);
+            addCell(row, event.eventNo);
+            body.appendChild(row);
+        }
+    }
+
+    async function loadAuditEvents() {
+        const thisRequest = ++requestNumber;
+        setMessage("Loading audit events…");
+        applyButton.disabled = true;
+        refreshButton.disabled = true;
+        previousButton.disabled = true;
+        nextButton.disabled = true;
+
+        const params = new URLSearchParams({
+            page: String(currentPage),
+            size: String(pageSize)
+        });
+
+        const search = searchInput.value.trim();
+        const action = actionInput.value.trim();
+        const outcome = outcomeInput.value;
+
+        if (search) params.set("search", search);
+        if (action) params.set("action", action);
+        if (outcome) params.set("outcome", outcome);
+
+        try {
+            const response = await fetch(
+                "/api/admin/audit?" + params.toString(),
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: { "Accept": "application/json" }
+                }
+            );
+
+            if (thisRequest !== requestNumber) return;
+
+            if (response.status === 401) {
+                showEmptyRow("Please sign in to view audit events.");
+                setMessage("Authentication required.");
+                pageInfo.textContent = "Access unavailable";
+                return;
+            }
+
+            if (response.status === 403) {
+                showEmptyRow("Audit events are restricted to administrators.");
+                setMessage("Administrator access is required.");
+                pageInfo.textContent = "Admin access only";
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error("Audit API returned HTTP " + response.status);
+            }
+
+            const result = await response.json();
+            if (thisRequest !== requestNumber) return;
+
+            renderEvents(result.events);
+
+            const total = Number(result.totalElements) || 0;
+            const page = Number(result.page) || 0;
+            const size = Number(result.size) || pageSize;
+            const first = total === 0 ? 0 : page * size + 1;
+            const last = Math.min((page + 1) * size, total);
+
+            pageInfo.textContent =
+                total === 0
+                    ? "0 events"
+                    : first + "–" + last + " of " + total + " events";
+
+            currentPage = page;
+            previousButton.disabled = page <= 0;
+            nextButton.disabled = (page + 1) * size >= total;
+            setMessage("Audit events loaded from the server.");
+        } catch (error) {
+            if (thisRequest !== requestNumber) return;
+            showEmptyRow("Audit events could not be loaded.");
+            setMessage(
+                error instanceof Error
+                    ? error.message
+                    : "Unable to load audit events."
+            );
+            pageInfo.textContent = "Unable to load events";
+        } finally {
+            if (thisRequest === requestNumber) {
+                applyButton.disabled = false;
+                refreshButton.disabled = false;
+            }
+        }
+    }
+
+    applyButton.addEventListener("click", () => {
+        currentPage = 0;
+        loadAuditEvents();
+    });
+
+    refreshButton.addEventListener("click", loadAuditEvents);
+
+    for (const input of [searchInput, actionInput]) {
+        input.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                currentPage = 0;
+                loadAuditEvents();
+            }
+        });
+    }
+
+    outcomeInput.addEventListener("change", () => {
+        currentPage = 0;
+        loadAuditEvents();
+    });
+
+    previousButton.addEventListener("click", () => {
+        if (currentPage > 0) {
+            currentPage--;
+            loadAuditEvents();
+        }
+    });
+
+    nextButton.addEventListener("click", () => {
+        currentPage++;
+        loadAuditEvents();
+    });
+
+    loadAuditEvents();
 });

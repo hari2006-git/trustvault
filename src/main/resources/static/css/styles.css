@@ -1,0 +1,92 @@
+
+
+/* TRUSTVAULT ACTION BUTTON STYLES V1 */
+
+/* Shared document action button styling */
+.document-actions .document-share,
+.document-actions .document-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 40px;
+    padding: 9px 15px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+}
+
+/* Manage access: purple primary action */
+.document-actions .document-share {
+    color: #ffffff;
+    background: #6d4aff;
+    border-color: #6d4aff;
+    box-shadow: 0 2px 5px rgba(109, 74, 255, 0.16);
+}
+
+.document-actions .document-share:hover {
+    color: #ffffff;
+    background: #5835e8;
+    border-color: #5835e8;
+    box-shadow: 0 4px 10px rgba(109, 74, 255, 0.23);
+    transform: translateY(-1px);
+}
+
+.document-actions .document-share:active {
+    transform: translateY(0);
+}
+
+/* Delete: clear destructive action */
+.document-actions .document-delete {
+    color: #c62828;
+    background: #fff5f5;
+    border-color: #fecaca;
+}
+
+.document-actions .document-delete:hover {
+    color: #ffffff;
+    background: #c62828;
+    border-color: #c62828;
+    box-shadow: 0 4px 10px rgba(198, 40, 40, 0.18);
+    transform: translateY(-1px);
+}
+
+.document-actions .document-delete:active {
+    transform: translateY(0);
+}
+
+/* Accessible keyboard focus */
+.document-actions .document-share:focus-visible,
+.document-actions .document-delete:focus-visible {
+    outline: 3px solid #a78bfa;
+    outline-offset: 3px;
+}
+
+/* Disabled state while a request is in progress */
+.document-actions .document-share:disabled,
+.document-actions .document-delete:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+@media (max-width: 600px) {
+    .document-actions .document-share,
+    .document-actions .document-delete {
+        min-height: 38px;
+        padding: 8px 11px;
+        font-size: 12px;
+    }
+}

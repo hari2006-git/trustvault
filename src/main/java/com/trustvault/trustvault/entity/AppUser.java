@@ -60,6 +60,7 @@ public class AppUser {
         this.enabled = true;
 
         // Public registration must never assign ADMIN.
+        // New accounts receive OWNER by default.
         this.role = UserRole.OWNER;
     }
 
@@ -89,5 +90,21 @@ public class AppUser {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    /**
+     * Changes this user's application role.
+     *
+     * This method does not perform authorization itself.
+     * Only trusted, server-side code must call it after
+     * verifying that the caller is permitted to change roles.
+     */
+    public void changeRole(UserRole newRole) {
+        if (newRole == null) {
+            throw new IllegalArgumentException(
+                    "A valid role is required.");
+        }
+
+        this.role = newRole;
     }
 }
