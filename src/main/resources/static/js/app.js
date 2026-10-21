@@ -33,6 +33,22 @@ document.addEventListener("DOMContentLoaded", () => {
     let searchRequestId = 0;
     let isLoading = false;
     let currentUser = null;
+    let documentView = "all";
+
+    // Switch between documents owned by the user and documents shared with them.
+    document.querySelectorAll("[data-document-view]").forEach((link) => {
+        link.addEventListener("click", () => {
+            documentView = link.dataset.documentView;
+
+            document.querySelectorAll(".nav-item").forEach((item) => {
+                item.classList.remove("active");
+            });
+            link.classList.add("active");
+
+            // Reuse the existing authorized list and current search filters.
+            searchDocuments();
+        });
+    });
 
     async function loadCurrentUser() {
         const response = await fetch("/api/me", {
@@ -843,7 +859,19 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderDocuments(documents) {
         if (!documentsList) return;
 
-        const results = applyLocalFilters(documents);
+        const viewDocuments = documents.filter((item) => {
+            if (documentView === "all") return true;
+            if (!currentUser || !item.ownerId) return false;
+
+            const ownedByCurrentUser =
+                String(item.ownerId) === String(currentUser.id);
+
+            return documentView === "mine"
+                ? ownedByCurrentUser
+                : !ownedByCurrentUser;
+        });
+
+        const results = applyLocalFilters(viewDocuments);
         const fragment = document.createDocumentFragment();
 
         for (const item of results) {
@@ -863,7 +891,7 @@ document.addEventListener("DOMContentLoaded", () => {
             documentsEmpty.hidden =
                 results.length > 0 ||
                 hasActiveFilters ||
-                allDocuments.length > 0;
+                viewDocuments.length > 0;
         }
 
         if (filterStatus) {
@@ -875,8 +903,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (results.length === 0) {
             showMessage(
                 documentsMessage,
-                allDocuments.length === 0
-                    ? "No documents yet. Upload a document to get started."
+                viewDocuments.length === 0
+                    ? documentView === "shared"
+                        ? "No documents have been shared with you yet."
+                        : documentView === "mine"
+                            ? "You have not uploaded any documents yet."
+                            : "No documents yet. Upload a document to get started."
                     : "No documents match your search or filters.",
                 "info"
             );
@@ -1186,45 +1218,135 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // TrustVault drag-and-drop upload. Dropping selects a file;
-    // the user still presses Upload to submit it.
-    if (uploadForm && documentFile) {
-        uploadForm.addEventListener("dragover", (event) => {
-            event.preventDefault();
-            if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
-            uploadForm.style.outline = "2px dashed #7c3aed";
-            uploadForm.style.outlineOffset = "4px";
-        });
+    // TrustVault drag-and-drop upload.
+    const uploadDropzone = document.getElementById("uploadDropzone");
+    const uploadSelectedFile = document.getElementById("uploadSelectedFile");
 
-        uploadForm.addEventListener("dragleave", (event) => {
-            if (!uploadForm.contains(event.relatedTarget)) {
-                uploadForm.style.outline = "";
-                uploadForm.style.outlineOffset = "";
-            }
-        });
+    if (uploadDropzone && uploadForm && documentFile) {
+        const maxDropFileBytes = 2 * 1024 * 1024 * 1024;
 
-        uploadForm.addEventListener("drop", (event) => {
-            event.preventDefault();
-            uploadForm.style.outline = "";
-            uploadForm.style.outlineOffset = "";
+        function updateSelectedFileMessage(file) {
+            if (!uploadSelectedFile) return;
 
-            const files = event.dataTransfer?.files;
-            if (!files || files.length === 0) return;
-
-            if (files.length !== 1) {
-                showMessage(uploadMessage, "Please drop one file at a time.", "error");
+            if (!file) {
+                uploadSelectedFile.textContent = "No file selected";
                 return;
             }
 
-            const transfer = new DataTransfer();
-            transfer.items.add(files[0]);
-            documentFile.files = transfer.files;
+            const size = file.size < 1024 * 1024
+                ? `${(file.size / 1024).toFixed(1)} KB`
+                : `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
 
-            showMessage(
-                uploadMessage,
-                `"${files[0].name}" selected. Press Upload document to continue.`,
-                "info"
-            );
+            uploadSelectedFile.textContent =
+                `Selected: ${file.name} (${size})`;
+        }
+
+        documentFile.addEventListener("change", () => {
+            const file = documentFile.files?.[0] || null;
+            updateSelectedFileMessage(file);
+
+            if (file) {
+                showMessage(
+                    uploadMessage,
+                    `"${file.name}" selected. Press Upload document to continue.`,
+                    "info"
+                );
+            }
+        });
+
+        uploadDropzone.addEventListener("dragenter", (event) => {
+            event.preventDefault();
+            uploadDropzone.classList.add("is-dragging");
+        });
+
+        uploadDropzone.addEventListener("dragover", (event) => {
+            event.preventDefault();
+
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = "copy";
+            }
+
+            uploadDropzone.classList.add("is-dragging");
+        });
+
+        uploadDropzone.addEventListener("dragleave", (event) => {
+            if (!uploadDropzone.contains(event.relatedTarget)) {
+                uploadDropzone.classList.remove("is-dragging");
+            }
+        });
+
+        uploadDropzone.addEventListener("drop", (event) => {
+            event.preventDefault();
+            uploadDropzone.classList.remove("is-dragging");
+
+            const files = event.dataTransfer?.files;
+
+            if (!files || files.length === 0) return;
+
+            if (files.length !== 1) {
+                showMessage(
+                    uploadMessage,
+                    "Please drop one file at a time.",
+                    "error"
+                );
+                return;
+            }
+
+            const file = files[0];
+
+            if (file.size === 0) {
+                showMessage(
+                    uploadMessage,
+                    "The selected file is empty.",
+                    "error"
+                );
+                return;
+            }
+
+            if (file.size > maxDropFileBytes) {
+                showMessage(
+                    uploadMessage,
+                    "The selected file exceeds the 2 GB application limit.",
+                    "error"
+                );
+                return;
+            }
+
+            try {
+                const transfer = new DataTransfer();
+                transfer.items.add(file);
+                documentFile.files = transfer.files;
+
+                updateSelectedFileMessage(file);
+
+                showMessage(
+                    uploadMessage,
+                    `"${file.name}" selected. Press Upload document to continue.`,
+                    "info"
+                );
+            } catch (error) {
+                console.error("Could not select the dropped file:", error);
+
+                showMessage(
+                    uploadMessage,
+                    "Could not select that file. Please use Browse files instead.",
+                    "error"
+                );
+            }
+        });
+
+        uploadDropzone.addEventListener("keydown", (event) => {
+            if (event.target !== uploadDropzone) return;
+
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                documentFile.click();
+            }
+        });
+
+        uploadForm.addEventListener("reset", () => {
+            updateSelectedFileMessage(null);
+            uploadDropzone.classList.remove("is-dragging");
         });
     }
 
