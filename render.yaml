@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: trustvault
+    runtime: docker
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: AWS_ENDPOINT_URL_S3
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: TRUSTVAULT_STORAGE_BUCKET
+        value: trustvault-documents
+      - key: PORT
+        value: "8080"
