@@ -9,6 +9,8 @@ import com.trustvault.trustvault.repository.AppUserRepository;
 import com.trustvault.trustvault.repository.DocumentPermissionRepository;
 import com.trustvault.trustvault.repository.DocumentRepository;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,15 +28,18 @@ public class DocumentPermissionService {
     private final DocumentRepository documentRepository;
     private final AppUserRepository appUserRepository;
     private final DocumentPermissionRepository permissionRepository;
+    private final AuditService auditService;
 
     public DocumentPermissionService(
             DocumentRepository documentRepository,
             AppUserRepository appUserRepository,
-            DocumentPermissionRepository permissionRepository) {
+            DocumentPermissionRepository permissionRepository,
+            AuditService auditService) {
 
         this.documentRepository = documentRepository;
         this.appUserRepository = appUserRepository;
         this.permissionRepository = permissionRepository;
+        this.auditService = auditService;
     }
 
     @Transactional(readOnly = true)
@@ -59,96 +64,213 @@ public class DocumentPermissionService {
             String recipientEmail,
             DocumentAccessLevel accessLevel) {
 
-        Document document = requireOwnedDocument(documentId, actorId);
-
-        if (recipientEmail == null || recipientEmail.isBlank()
-                || recipientEmail.trim().length() > 320) {
-            throw new IllegalArgumentException(
-                    "A valid recipient email is required.");
-        }
-
-        if (accessLevel == null) {
-            throw new IllegalArgumentException(
-                    "Permission must be READ or EDIT.");
-        }
-
-        String normalizedEmail =
-                recipientEmail.trim().toLowerCase(Locale.ROOT);
-
-        AppUser recipient = appUserRepository
-                .findByEmailIgnoreCase(normalizedEmail)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "The recipient account could not be found."));
-
-        if (!recipient.isEnabled()) {
-            throw new IllegalArgumentException(
-                    "The recipient account is disabled.");
-        }
-
-        if (recipient.getId().equals(actorId)) {
-            throw new IllegalArgumentException(
-                    "You already own this document.");
-        }
-
-        AppUser actor = findEnabledActor(actorId);
-
-        boolean alreadyGranted = permissionRepository
-                .findByDocument_IdAndUser_IdAndRevokedAtIsNull(
-                        documentId,
-                        recipient.getId())
-                .isPresent();
-
-        if (alreadyGranted) {
-            throw new IllegalStateException(
-                    "This user already has active access. Revoke it before creating a new grant.");
-        }
-
-        DocumentPermission permission = new DocumentPermission(
-                UUID.randomUUID(),
-                document,
-                recipient,
+        return grantPermission(
+                documentId,
+                actorId,
+                recipientEmail,
                 accessLevel,
-                actor
-        );
+                null);
+    }
+
+    @Transactional
+    public PermissionView grantPermission(
+            UUID documentId,
+            UUID actorId,
+            String recipientEmail,
+            DocumentAccessLevel accessLevel,
+            HttpServletRequest request) {
+
+        Document document = null;
+        AppUser actor = null;
+        AppUser recipient = null;
 
         try {
+            document = requireOwnedDocument(documentId, actorId);
+            actor = findEnabledActor(actorId);
+
+            if (recipientEmail == null
+                    || recipientEmail.isBlank()
+                    || recipientEmail.trim().length() > 320) {
+
+                throw new IllegalArgumentException(
+                        "A valid recipient email is required.");
+            }
+
+            if (accessLevel == null) {
+                throw new IllegalArgumentException(
+                        "Permission must be READ or EDIT.");
+            }
+
+            String normalizedEmail =
+                    recipientEmail.trim().toLowerCase(Locale.ROOT);
+
+            recipient = appUserRepository
+                    .findByEmailIgnoreCase(normalizedEmail)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "The recipient account could not be found."));
+
+            if (!recipient.isEnabled()) {
+                throw new IllegalArgumentException(
+                        "The recipient account is disabled.");
+            }
+
+            if (recipient.getId().equals(actorId)) {
+                throw new IllegalArgumentException(
+                        "You already own this document.");
+            }
+
+            boolean alreadyGranted = permissionRepository
+                    .findByDocument_IdAndUser_IdAndRevokedAtIsNull(
+                            documentId,
+                            recipient.getId())
+                    .isPresent();
+
+            if (alreadyGranted) {
+                throw new IllegalStateException(
+                        "This user already has active access. "
+                                + "Revoke it before creating a new grant.");
+            }
+
+            DocumentPermission permission = new DocumentPermission(
+                    UUID.randomUUID(),
+                    document,
+                    recipient,
+                    accessLevel,
+                    actor);
+
             DocumentPermission saved =
                     permissionRepository.saveAndFlush(permission);
 
+            recordAudit(
+                    actor,
+                    "PERMISSION_GRANT",
+                    "SUCCESS",
+                    document,
+                    recipient,
+                    "PERMISSION_GRANTED",
+                    request);
+
             return toView(saved);
 
-        } catch (DataIntegrityViolationException exception) {
-            // The database's partial unique index protects against two
-            // simultaneous attempts to grant the same active permission.
-            throw new IllegalStateException(
-                    "An active permission already exists for this user.",
-                    exception);
+        } catch (RuntimeException exception) {
+
+            if (exception instanceof DataIntegrityViolationException) {
+                recordAudit(
+                        actor,
+                        "PERMISSION_GRANT",
+                        "FAILURE",
+                        document,
+                        recipient,
+                        "PERMISSION_CONFLICT",
+                        request);
+
+                throw new IllegalStateException(
+                        "An active permission already exists for this user.",
+                        exception);
+            }
+
+            if (exception instanceof ResponseStatusException response
+                    && (response.getStatusCode() == HttpStatus.NOT_FOUND
+                    || response.getStatusCode() == HttpStatus.FORBIDDEN)) {
+
+                recordAudit(
+                        actor,
+                        "PERMISSION_GRANT",
+                        "DENIED",
+                        document,
+                        recipient,
+                        "AUTHORIZATION_DENIED",
+                        request);
+
+            } else if (exception instanceof IllegalArgumentException
+                    || exception instanceof IllegalStateException) {
+
+                recordAudit(
+                        actor,
+                        "PERMISSION_GRANT",
+                        "FAILURE",
+                        document,
+                        recipient,
+                        "INVALID_PERMISSION_REQUEST",
+                        request);
+            }
+
+            throw exception;
         }
     }
 
     @Transactional
-    public void revokePermission(
+    public PermissionView revokePermission(
             UUID documentId,
             UUID permissionId,
             UUID actorId) {
 
-        requireOwnedDocument(documentId, actorId);
-        AppUser actor = findEnabledActor(actorId);
+        return revokePermission(
+                documentId,
+                permissionId,
+                actorId,
+                null);
+    }
 
-        DocumentPermission permission = permissionRepository
-                .findAllByDocument_IdAndRevokedAtIsNullOrderByGrantedAtDesc(
-                        documentId)
-                .stream()
-                .filter(item -> item.getId().equals(permissionId))
-                .findFirst()
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Active permission not found."));
+    @Transactional
+    public PermissionView revokePermission(
+            UUID documentId,
+            UUID permissionId,
+            UUID actorId,
+            HttpServletRequest request) {
 
-        permission.revoke(actor);
-        permissionRepository.saveAndFlush(permission);
+        Document document = null;
+        AppUser actor = null;
+        DocumentPermission permission = null;
 
-        // The record is revoked rather than deleted so its history remains.
+        try {
+            document = requireOwnedDocument(documentId, actorId);
+            actor = findEnabledActor(actorId);
+
+            permission = permissionRepository
+                    .findAllByDocument_IdAndRevokedAtIsNullOrderByGrantedAtDesc(
+                            documentId)
+                    .stream()
+                    .filter(item -> item.getId().equals(permissionId))
+                    .findFirst()
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "Active permission not found."));
+
+            permission.revoke(actor);
+
+            DocumentPermission saved =
+                    permissionRepository.saveAndFlush(permission);
+
+            recordAudit(
+                    actor,
+                    "PERMISSION_REVOKE",
+                    "SUCCESS",
+                    document,
+                    saved.getUser(),
+                    "PERMISSION_REVOKED",
+                    request);
+
+            return toView(saved);
+
+        } catch (RuntimeException exception) {
+
+            if (exception instanceof ResponseStatusException response
+                    && (response.getStatusCode() == HttpStatus.NOT_FOUND
+                    || response.getStatusCode() == HttpStatus.FORBIDDEN)) {
+
+                recordAudit(
+                        actor,
+                        "PERMISSION_REVOKE",
+                        "DENIED",
+                        document,
+                        permission == null ? null : permission.getUser(),
+                        "AUTHORIZATION_DENIED",
+                        request);
+            }
+
+            throw exception;
+        }
     }
 
     private Document requireOwnedDocument(
@@ -166,8 +288,10 @@ public class DocumentPermissionService {
                         HttpStatus.NOT_FOUND,
                         "Document not found."));
 
-        if (!document.getOwner().getId().equals(actorId)) {
-            // Do not disclose another user's document to a non-owner.
+        if (document.isDeleted()
+                || document.getOwner() == null
+                || !document.getOwner().getId().equals(actorId)) {
+
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND,
                     "Document not found.");
@@ -184,6 +308,28 @@ public class DocumentPermissionService {
                         "The account is not available."));
     }
 
+    private void recordAudit(
+            AppUser actor,
+            String action,
+            String outcome,
+            Document document,
+            AppUser target,
+            String reason,
+            HttpServletRequest request) {
+
+        auditService.record(
+                actor == null ? null : actor.getId(),
+                actor == null ? "anonymous" : actor.getEmail(),
+                action,
+                outcome,
+                document == null ? null : document.getId(),
+                document == null ? null : document.getOriginalName(),
+                target == null ? null : target.getId(),
+                target == null ? null : target.getEmail(),
+                reason,
+                request);
+    }
+
     private static PermissionView toView(
             DocumentPermission permission) {
 
@@ -194,8 +340,7 @@ public class DocumentPermissionService {
                 permission.getUser().getDisplayName(),
                 permission.getPermission(),
                 permission.getGrantedAt(),
-                permission.getRevokedAt()
-        );
+                permission.getRevokedAt());
     }
 
     public record PermissionView(

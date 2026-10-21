@@ -7,6 +7,8 @@ import com.trustvault.trustvault.repository.AppUserRepository;
 import com.trustvault.trustvault.service.DocumentPermissionService;
 import com.trustvault.trustvault.service.DocumentPermissionService.PermissionView;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -52,12 +54,13 @@ public class DocumentPermissionController {
     @PostMapping
     public ResponseEntity<PermissionView> grantPermission(
             @PathVariable UUID documentId,
-            @RequestBody GrantRequest request,
-            Authentication authentication) {
+            @RequestBody GrantRequest requestBody,
+            Authentication authentication,
+            HttpServletRequest request) {
 
         AppUser actor = currentUser(authentication);
 
-        if (request == null) {
+        if (requestBody == null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "A permission request is required.");
@@ -67,9 +70,9 @@ public class DocumentPermissionController {
             PermissionView created = permissionService.grantPermission(
                     documentId,
                     actor.getId(),
-                    request.email(),
-                    request.permission()
-            );
+                    requestBody.email(),
+                    requestBody.permission(),
+                    request);
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(created);
@@ -89,14 +92,16 @@ public class DocumentPermissionController {
     public ResponseEntity<Void> revokePermission(
             @PathVariable UUID documentId,
             @PathVariable UUID permissionId,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest request) {
 
         AppUser actor = currentUser(authentication);
 
         permissionService.revokePermission(
                 documentId,
                 permissionId,
-                actor.getId());
+                actor.getId(),
+                request);
 
         return ResponseEntity.noContent().build();
     }
