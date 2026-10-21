@@ -171,6 +171,16 @@ class DocumentAccessIntegrationTest {
                                         """.formatted(recipient.getEmail())))
                 .andExpect(status().isCreated());
 
+        // The recipient can download the document after receiving READ.
+        mockMvc.perform(
+                        get("/api/documents/{id}/download", document.getId())
+                                .with(SecurityMockMvcRequestPostProcessors
+                                        .user(recipient.getEmail())
+                                        .roles("OWNER")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(
+                        "Private integration test document."));
+
         Integer grantCount = jdbcTemplate.queryForObject(
                 """
                 SELECT COUNT(*)
@@ -213,6 +223,14 @@ class DocumentAccessIntegrationTest {
                                         .roles("OWNER"))
                                 .with(csrf()))
                 .andExpect(status().isNoContent());
+
+        // Revocation must block the recipient's next download immediately.
+        mockMvc.perform(
+                        get("/api/documents/{id}/download", document.getId())
+                                .with(SecurityMockMvcRequestPostProcessors
+                                        .user(recipient.getEmail())
+                                        .roles("OWNER")))
+                .andExpect(status().isNotFound());
 
         Integer revokeCount = jdbcTemplate.queryForObject(
                 """
