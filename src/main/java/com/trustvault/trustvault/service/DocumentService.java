@@ -1,0 +1,225 @@
+
+package com.trustvault.trustvault.service;
+
+import com.trustvault.trustvault.entity.AppUser;
+import com.trustvault.trustvault.entity.Document;
+import com.trustvault.trustvault.entity.DocumentPermission;
+import com.trustvault.trustvault.repository.AppUserRepository;
+import com.trustvault.trustvault.repository.DocumentPermissionRepository;
+import com.trustvault.trustvault.repository.DocumentRepository;
+import com.trustvault.trustvault.storage.LocalFileStorageService;
+import com.trustvault.trustvault.storage.LocalFileStorageService.StoredFile;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+public class DocumentService {
+
+    private final DocumentRepository documentRepository;
+    private final AppUserRepository appUserRepository;
+    private final DocumentPermissionRepository permissionRepository;
+    private final LocalFileStorageService fileStorageService;
+
+    public DocumentService(
+            DocumentRepository documentRepository,
+            AppUserRepository appUserRepository,
+            DocumentPermissionRepository permissionRepository,
+            LocalFileStorageService fileStorageService) {
+
+        this.documentRepository = documentRepository;
+        this.appUserRepository = appUserRepository;
+        this.permissionRepository = permissionRepository;
+        this.fileStorageService = fileStorageService;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Document> findAllAccessibleToUser(UUID userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException(
+                    "User ID is required.");
+        }
+
+        Map<UUID, Document> accessible = new LinkedHashMap<>();
+
+        // Include active documents owned by this user.
+        for (Document document :
+                documentRepository.findAllByOwner_IdOrderByCreatedAtDesc(
+                        userId)) {
+
+            if (!document.isDeleted()) {
+                accessible.put(document.getId(), document);
+            }
+        }
+
+        // Include active documents explicitly shared with this user.
+        for (DocumentPermission permission :
+                permissionRepository.findAllByUser_IdAndRevokedAtIsNull(
+                        userId)) {
+
+            Document document = permission.getDocument();
+
+            if (document != null && !document.isDeleted()) {
+                accessible.putIfAbsent(document.getId(), document);
+            }
+        }
+
+        List<Document> result = new ArrayList<>(accessible.values());
+
+        result.sort(
+                Comparator.comparing(
+                        Document::getCreatedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())
+                )
+        );
+
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Document> findByIdForOwner(
+            UUID documentId,
+            UUID ownerId) {
+
+        if (documentId == null || ownerId == null) {
+            throw new IllegalArgumentException(
+                    "Document ID and owner ID are required.");
+        }
+
+        return documentRepository.findByIdAndOwner_Id(
+                        documentId, ownerId)
+                .filter(document -> !document.isDeleted());
+    }
+
+    /**
+     * Soft-deletes a document owned by the supplied user.
+     *
+     * The stored file is intentionally retained. Normal document access
+     * must reject deleted records, and any later retention or recovery
+     * process must be explicitly authorized.
+     */
+    @Transactional
+    public Optional<Document> softDeleteDocument(
+            UUID documentId,
+            UUID ownerId) {
+
+        if (documentId == null || ownerId == null) {
+            throw new IllegalArgumentException(
+                    "Document ID and owner ID are required.");
+        }
+
+        Optional<Document> result =
+                documentRepository.findByIdAndOwner_Id(
+                        documentId, ownerId);
+
+        if (result.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Document document = result.get();
+
+        if (document.isDeleted()) {
+            return Optional.empty();
+        }
+
+        AppUser owner = appUserRepository.findById(ownerId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Document owner was not found."));
+
+        document.markDeleted(owner);
+
+        return Optional.of(
+                documentRepository.saveAndFlush(document));
+    }
+
+    @Transactional
+    public Document storeDocument(
+            UUID ownerId,
+            String originalName,
+            String contentType,
+            InputStream content) throws IOException {
+
+        if (ownerId == null) {
+            throw new IllegalArgumentException(
+                    "Owner ID is required.");
+        }
+
+        if (content == null) {
+            throw new IllegalArgumentException(
+                    "Document content is required.");
+        }
+
+        AppUser owner = appUserRepository.findById(ownerId)
+                .filter(AppUser::isEnabled)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Enabled document owner was not found."));
+
+        String safeName = validateOriginalName(originalName);
+
+        if (contentType != null && contentType.length() > 255) {
+            throw new IllegalArgumentException(
+                    "Content type is too long.");
+        }
+
+        if (contentType != null && contentType.isBlank()) {
+            contentType = null;
+        }
+
+        StoredFile storedFile = fileStorageService.store(content);
+
+        Document document = new Document(
+                UUID.randomUUID(),
+                safeName,
+                storedFile.storageKey(),
+                contentType,
+                storedFile.sizeBytes(),
+                storedFile.checksumSha256(),
+                owner
+        );
+
+        try {
+            return documentRepository.saveAndFlush(document);
+        } catch (RuntimeException exception) {
+            try {
+                fileStorageService.delete(storedFile.storageKey());
+            } catch (IOException cleanupException) {
+                exception.addSuppressed(cleanupException);
+            }
+
+            throw exception;
+        }
+    }
+
+    private String validateOriginalName(String originalName) {
+        if (originalName == null || originalName.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Original filename must not be blank.");
+        }
+
+        String name = originalName.replace('\\', '/');
+        name = name.substring(name.lastIndexOf('/') + 1).trim();
+
+        if (name.isEmpty()
+                || name.equals(".")
+                || name.equals("..")
+                || name.length() > 255
+                || name.codePoints()
+                        .anyMatch(Character::isISOControl)) {
+
+            throw new IllegalArgumentException(
+                    "Invalid original filename.");
+        }
+
+        return name;
+    }
+}
