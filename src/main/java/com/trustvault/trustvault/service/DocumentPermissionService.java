@@ -85,8 +85,13 @@ public class DocumentPermissionService {
         AppUser recipient = null;
 
         try {
-            document = requireOwnedDocument(documentId, actorId);
             actor = findEnabledActor(actorId);
+
+            // Load audit context first; this does NOT authorize access.
+            document = findDocumentForAudit(documentId);
+
+            // Only the owner may grant permissions.
+            document = requireOwnedDocument(documentId, actorId);
 
             if (recipientEmail == null
                     || recipientEmail.isBlank()
@@ -224,8 +229,13 @@ public class DocumentPermissionService {
         DocumentPermission permission = null;
 
         try {
-            document = requireOwnedDocument(documentId, actorId);
             actor = findEnabledActor(actorId);
+
+            // Load audit context without granting access.
+            document = findDocumentForAudit(documentId);
+
+            // Only the owner may revoke permissions.
+            document = requireOwnedDocument(documentId, actorId);
 
             permission = permissionRepository
                     .findAllByDocument_IdAndRevokedAtIsNullOrderByGrantedAtDesc(
@@ -271,6 +281,16 @@ public class DocumentPermissionService {
 
             throw exception;
         }
+    }
+
+    private Document findDocumentForAudit(UUID documentId) {
+        if (documentId == null) {
+            return null;
+        }
+
+        return documentRepository.findById(documentId)
+                .filter(document -> !document.isDeleted())
+                .orElse(null);
     }
 
     private Document requireOwnedDocument(

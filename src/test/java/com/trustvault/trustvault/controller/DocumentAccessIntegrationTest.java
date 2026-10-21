@@ -1,3 +1,4 @@
+
 package com.trustvault.trustvault.controller;
 
 import com.trustvault.trustvault.entity.AppUser;
@@ -18,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
@@ -154,7 +156,7 @@ class DocumentAccessIntegrationTest {
                         "not-a-real-password-hash",
                         "Integration Test Recipient"));
 
-        // Grant READ access through the real HTTP endpoint.
+        // The owner grants READ access through the real HTTP endpoint.
         mockMvc.perform(
                         post("/api/documents/{id}/permissions",
                                 document.getId())
@@ -212,7 +214,7 @@ class DocumentAccessIntegrationTest {
                 document.getId(),
                 recipient.getId());
 
-        // Revoke the permission through the real HTTP endpoint.
+        // The owner revokes access through the real HTTP endpoint.
         mockMvc.perform(
                         delete(
                                 "/api/documents/{documentId}/permissions/{permissionId}",
@@ -251,7 +253,6 @@ class DocumentAccessIntegrationTest {
         assertEquals(1, revokeCount,
                 "A successful permission revocation must be audited.");
 
-        // Confirm the permission is no longer active.
         Integer activePermissionCount = jdbcTemplate.queryForObject(
                 """
                 SELECT COUNT(*)
@@ -264,5 +265,148 @@ class DocumentAccessIntegrationTest {
 
         assertEquals(0, activePermissionCount,
                 "Revoked access must no longer be active.");
+    }
+
+    @Test
+    void nonOwnerCannotGrantOrRevokePermissionsAndAttemptsAreAudited()
+            throws Exception {
+
+        AppUser recipient = appUserRepository.saveAndFlush(
+                new AppUser(
+                        UUID.randomUUID(),
+                        "recipient-" + UUID.randomUUID() + "@example.test",
+                        "not-a-real-password-hash",
+                        "Integration Test Recipient"));
+
+        AppUser thirdUser = appUserRepository.saveAndFlush(
+                new AppUser(
+                        UUID.randomUUID(),
+                        "third-" + UUID.randomUUID() + "@example.test",
+                        "not-a-real-password-hash",
+                        "Integration Test Third User"));
+
+        // The owner first grants READ access to the recipient.
+        mockMvc.perform(
+                        post("/api/documents/{id}/permissions",
+                                document.getId())
+                                .with(SecurityMockMvcRequestPostProcessors
+                                        .user(owner.getEmail())
+                                        .roles("OWNER"))
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "email": "%s",
+                                          "permission": "READ"
+                                        }
+                                        """.formatted(recipient.getEmail())))
+                .andExpect(status().isCreated());
+
+        UUID permissionId = jdbcTemplate.queryForObject(
+                """
+                SELECT id
+                FROM document_permissions
+                WHERE document_id = ?
+                  AND user_id = ?
+                  AND revoked_at IS NULL
+                """,
+                UUID.class,
+                document.getId(),
+                recipient.getId());
+
+        // A recipient must not be able to grant access to another user.
+        mockMvc.perform(
+                        post("/api/documents/{id}/permissions",
+                                document.getId())
+                                .with(SecurityMockMvcRequestPostProcessors
+                                        .user(recipient.getEmail())
+                                        .roles("OWNER"))
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "email": "%s",
+                                          "permission": "READ"
+                                        }
+                                        """.formatted(thirdUser.getEmail())))
+                .andExpect(status().isNotFound());
+
+        // A recipient must not be able to revoke their own permission.
+        mockMvc.perform(
+                        delete(
+                                "/api/documents/{documentId}/permissions/{permissionId}",
+                                document.getId(),
+                                permissionId)
+                                .with(SecurityMockMvcRequestPostProcessors
+                                        .user(recipient.getEmail())
+                                        .roles("OWNER"))
+                                .with(csrf()))
+                .andExpect(status().isNotFound());
+
+        // Verify the denied grant was recorded in the audit log.
+        Integer deniedGrantCount = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM audit_events
+                WHERE actor_email = ?
+                  AND action = 'PERMISSION_GRANT'
+                  AND outcome = 'DENIED'
+                  AND reason_code = 'AUTHORIZATION_DENIED'
+                  AND document_id = ?
+                """,
+                Integer.class,
+                recipient.getEmail(),
+                document.getId());
+
+        assertEquals(1, deniedGrantCount,
+                "An unauthorized grant attempt must be audited.");
+
+        // Verify the denied revocation was recorded in the audit log.
+        Integer deniedRevokeCount = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM audit_events
+                WHERE actor_email = ?
+                  AND action = 'PERMISSION_REVOKE'
+                  AND outcome = 'DENIED'
+                  AND reason_code = 'AUTHORIZATION_DENIED'
+                  AND document_id = ?
+                """,
+                Integer.class,
+                recipient.getEmail(),
+                document.getId());
+
+        assertEquals(1, deniedRevokeCount,
+                "An unauthorized revoke attempt must be audited.");
+
+        // Neither denied attempt may remove the existing permission.
+        Integer activePermissionCount = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM document_permissions
+                WHERE id = ?
+                  AND revoked_at IS NULL
+                """,
+                Integer.class,
+                permissionId);
+
+        assertEquals(1, activePermissionCount,
+                "Unauthorized actions must not change the permission.");
+
+        // The unauthorized grant must not create access for the third user.
+        Integer thirdUserPermissionCount = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM document_permissions
+                WHERE document_id = ?
+                  AND user_id = ?
+                  AND revoked_at IS NULL
+                """,
+                Integer.class,
+                document.getId(),
+                thirdUser.getId());
+
+        assertEquals(0, thirdUserPermissionCount,
+                "An unauthorized grant must not create a permission.");
     }
 }
