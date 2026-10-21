@@ -96,6 +96,44 @@ public class DocumentController {
                 .toList();
     }
 
+    /**
+     * Search documents accessible to the authenticated user.
+     * Both filters are optional.
+     */
+    @GetMapping("/search")
+    public List<DocumentResponse> searchDocuments(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String ownerEmail,
+            Authentication authentication,
+            HttpServletRequest request) {
+
+        AppUser user = getCurrentUser(authentication);
+
+        try {
+            List<Document> documents =
+                    documentService.searchAccessibleDocuments(
+                            user.getId(), name, ownerEmail);
+
+            auditService.record(
+                    user.getId(), user.getEmail(),
+                    "DOCUMENT_SEARCH", "SUCCESS",
+                    null, null, null, null, null, request);
+
+            return documents.stream()
+                    .map(DocumentController::toResponse)
+                    .toList();
+
+        } catch (RuntimeException exception) {
+            auditService.record(
+                    user.getId(), user.getEmail(),
+                    "DOCUMENT_SEARCH", "FAILURE",
+                    null, null, null, null,
+                    "SEARCH_FAILED", request);
+
+            throw exception;
+        }
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentResponse> uploadDocument(
             @RequestParam("file") MultipartFile file,

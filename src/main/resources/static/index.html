@@ -993,7 +993,129 @@
                         ↻ Refresh
                     </button>
                 </div>
+                <!-- Document search and filters -->
+                
+                <!-- Dashboard insights: real data from the document API -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;padding:20px 25px;border-bottom:1px solid #eee8f7;">
+                    <section aria-labelledby="recentUploadsTitle">
+                        <h3 id="recentUploadsTitle" style="margin:0 0 12px;font-size:15px;">Recent uploads</h3>
+                        <div id="recentUploadsList" aria-live="polite" style="display:grid;gap:10px;">
+                            <p style="color:#827895;font-size:13px;">Loading documents...</p>
+                        </div>
+                    </section>
+                    <section aria-labelledby="fileTypesTitle">
+                        <h3 id="fileTypesTitle" style="margin:0 0 12px;font-size:15px;">File types</h3>
+                        <div id="fileTypeSummary" aria-live="polite" style="display:grid;gap:10px;">
+                            <p style="color:#827895;font-size:13px;">Loading summary...</p>
+                        </div>
+                    </section>
+                </div>
 
+                <div class="document-filters"
+                     style="padding:20px 25px;
+                            display:grid;
+                            grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+                            gap:14px;
+                            border-bottom:1px solid #eee8f7;">
+
+                    <div>
+                        <label for="documentSearchName"
+                               style="display:block;margin-bottom:7px;
+                                      font-size:12px;font-weight:600;">
+                            Search filename
+                        </label>
+                        <input id="documentSearchName"
+                               type="search"
+                               placeholder="e.g. contract.pdf"
+                               autocomplete="off"
+                               style="width:100%;box-sizing:border-box;
+                                      padding:11px 12px;border:1px solid #ded6ed;
+                                      border-radius:9px;background:#fff;
+                                      font:inherit;font-size:13px;">
+                    </div>
+
+                    <div>
+                        <label for="documentSearchOwner"
+                               style="display:block;margin-bottom:7px;
+                                      font-size:12px;font-weight:600;">
+                            Owner email
+                        </label>
+                        <input id="documentSearchOwner"
+                               type="search"
+                               placeholder="e.g. user@example.com"
+                               autocomplete="off"
+                               style="width:100%;box-sizing:border-box;
+                                      padding:11px 12px;border:1px solid #ded6ed;
+                                      border-radius:9px;background:#fff;
+                                      font:inherit;font-size:13px;">
+                    </div>
+
+                    <div>
+                        <label for="documentDateFrom"
+                               style="display:block;margin-bottom:7px;
+                                      font-size:12px;font-weight:600;">
+                            Created from
+                        </label>
+                        <input id="documentDateFrom"
+                               type="date"
+                               style="width:100%;box-sizing:border-box;
+                                      padding:10px 12px;border:1px solid #ded6ed;
+                                      border-radius:9px;background:#fff;
+                                      font:inherit;font-size:13px;">
+                    </div>
+
+                    <div>
+                        <label for="documentDateTo"
+                               style="display:block;margin-bottom:7px;
+                                      font-size:12px;font-weight:600;">
+                            Created to
+                        </label>
+                        <input id="documentDateTo"
+                               type="date"
+                               style="width:100%;box-sizing:border-box;
+                                      padding:10px 12px;border:1px solid #ded6ed;
+                                      border-radius:9px;background:#fff;
+                                      font:inherit;font-size:13px;">
+                    </div>
+
+                    <div>
+                        <label for="documentSort"
+                               style="display:block;margin-bottom:7px;
+                                      font-size:12px;font-weight:600;">
+                            Sort documents
+                        </label>
+                        <select id="documentSort"
+                                style="width:100%;box-sizing:border-box;
+                                       padding:11px 12px;border:1px solid #ded6ed;
+                                       border-radius:9px;background:#fff;
+                                       font:inherit;font-size:13px;">
+                            <option value="newest">Newest first</option>
+                            <option value="oldest">Oldest first</option>
+                            <option value="name-asc">Filename A–Z</option>
+                            <option value="name-desc">Filename Z–A</option>
+                            <option value="largest">Largest first</option>
+                            <option value="smallest">Smallest first</option>
+                        </select>
+                    </div>
+
+                    <div style="display:flex;align-items:flex-end;">
+                        <button id="clearDocumentFilters"
+                                class="secondary-button"
+                                type="button"
+                                style="width:100%;justify-content:center;">
+                            Clear filters
+                        </button>
+                    </div>
+
+                    <p id="documentFilterStatus"
+                       role="status"
+                       aria-live="polite"
+                       style="grid-column:1/-1;margin:0;
+                              color:#827895;font-size:12px;">
+                        Use the filters to find documents.
+                    </p>
+
+                </div>
                 <div class="empty" id="documentsEmpty" hidden>
                     <div class="empty-icon">▤</div>
                     <h3>Your vault is ready</h3>

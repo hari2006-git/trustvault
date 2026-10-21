@@ -1,4 +1,3 @@
-
 package com.trustvault.trustvault.service;
 
 import com.trustvault.trustvault.entity.AppUser;
@@ -15,10 +14,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -46,13 +49,11 @@ public class DocumentService {
     @Transactional(readOnly = true)
     public List<Document> findAllAccessibleToUser(UUID userId) {
         if (userId == null) {
-            throw new IllegalArgumentException(
-                    "User ID is required.");
+            throw new IllegalArgumentException("User ID is required.");
         }
 
         Map<UUID, Document> accessible = new LinkedHashMap<>();
 
-        // Include active documents owned by this user.
         for (Document document :
                 documentRepository.findAllByOwner_IdOrderByCreatedAtDesc(
                         userId)) {
@@ -62,7 +63,6 @@ public class DocumentService {
             }
         }
 
-        // Include active documents explicitly shared with this user.
         for (DocumentPermission permission :
                 permissionRepository.findAllByUser_IdAndRevokedAtIsNull(
                         userId)) {
@@ -86,6 +86,101 @@ public class DocumentService {
         return result;
     }
 
+    /**
+     * Backward-compatible search method.
+     */
+    @Transactional(readOnly = true)
+    public List<Document> searchAccessibleDocuments(
+            UUID userId,
+            String name,
+            String ownerEmail) {
+
+        return searchAccessibleDocuments(
+                userId, name, ownerEmail, null, null, null);
+    }
+
+    /**
+     * Searches only active documents the user is authorized to discover.
+     *
+     * Name: case-insensitive partial match.
+     * Owner email: case-insensitive exact match.
+     * Category: case-insensitive exact match.
+     * Date range: inclusive start and inclusive end dates, interpreted in UTC.
+     * Null or blank text filters and null date filters are ignored.
+     */
+    @Transactional(readOnly = true)
+    public List<Document> searchAccessibleDocuments(
+            UUID userId,
+            String name,
+            String ownerEmail,
+            String category,
+            LocalDate createdFrom,
+            LocalDate createdTo) {
+
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID is required.");
+        }
+
+        if (createdFrom != null
+                && createdTo != null
+                && createdFrom.isAfter(createdTo)) {
+            throw new IllegalArgumentException(
+                    "Start date must not be after end date.");
+        }
+
+        String normalizedName = normalize(name);
+        String normalizedOwnerEmail = normalize(ownerEmail);
+        String normalizedCategory = normalize(category);
+
+        Instant fromInstant = createdFrom == null
+                ? null
+                : createdFrom.atStartOfDay().toInstant(ZoneOffset.UTC);
+
+        // Exclusive upper boundary includes every time on createdTo.
+        Instant toExclusive = createdTo == null
+                ? null
+                : createdTo.plusDays(1)
+                        .atStartOfDay()
+                        .toInstant(ZoneOffset.UTC);
+
+        return findAllAccessibleToUser(userId)
+                .stream()
+                .filter(document ->
+                        normalizedName.isEmpty()
+                        || (document.getOriginalName() != null
+                        && document.getOriginalName()
+                                .toLowerCase(Locale.ROOT)
+                                .contains(normalizedName)))
+                .filter(document ->
+                        normalizedOwnerEmail.isEmpty()
+                        || (document.getOwner() != null
+                        && document.getOwner().getEmail() != null
+                        && document.getOwner().getEmail()
+                                .toLowerCase(Locale.ROOT)
+                                .equals(normalizedOwnerEmail)))
+                .filter(document ->
+                        normalizedCategory.isEmpty()
+                        || (document.getCategory() != null
+                        && document.getCategory()
+                                .toLowerCase(Locale.ROOT)
+                                .equals(normalizedCategory)))
+                .filter(document ->
+                        fromInstant == null
+                        || (document.getCreatedAt() != null
+                        && !document.getCreatedAt().isBefore(fromInstant)))
+                .filter(document ->
+                        toExclusive == null
+                        || (document.getCreatedAt() != null
+                        && document.getCreatedAt().isBefore(toExclusive)))
+                .toList();
+    }
+
+    private String normalize(String value) {
+        return value == null
+                ? ""
+                : value.trim().toLowerCase(Locale.ROOT);
+    }
+
     @Transactional(readOnly = true)
     public Optional<Document> findByIdForOwner(
             UUID documentId,
@@ -103,10 +198,7 @@ public class DocumentService {
 
     /**
      * Soft-deletes a document owned by the supplied user.
-     *
-     * The stored file is intentionally retained. Normal document access
-     * must reject deleted records, and any later retention or recovery
-     * process must be explicitly authorized.
+     * The stored file is retained for controlled retention or recovery.
      */
     @Transactional
     public Optional<Document> softDeleteDocument(
@@ -149,9 +241,20 @@ public class DocumentService {
             String contentType,
             InputStream content) throws IOException {
 
+        return storeDocument(
+                ownerId, originalName, contentType, content, null);
+    }
+
+    @Transactional
+    public Document storeDocument(
+            UUID ownerId,
+            String originalName,
+            String contentType,
+            InputStream content,
+            String category) throws IOException {
+
         if (ownerId == null) {
-            throw new IllegalArgumentException(
-                    "Owner ID is required.");
+            throw new IllegalArgumentException("Owner ID is required.");
         }
 
         if (content == null) {
@@ -188,6 +291,7 @@ public class DocumentService {
         );
 
         try {
+            document.setCategory(category);
             return documentRepository.saveAndFlush(document);
         } catch (RuntimeException exception) {
             try {

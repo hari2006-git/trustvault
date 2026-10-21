@@ -23,16 +23,14 @@ public class Document {
     @Column(name = "original_name", nullable = false, length = 255)
     private String originalName;
 
-    @Column(
-        name = "storage_key",
-        nullable = false,
-        unique = true,
-        length = 255
-    )
+    @Column(name = "storage_key", nullable = false, unique = true, length = 255)
     private String storageKey;
 
     @Column(name = "content_type", length = 255)
     private String contentType;
+
+    @Column(name = "category", length = 100)
+    private String category;
 
     @Column(name = "size_bytes", nullable = false)
     private Long sizeBytes;
@@ -95,6 +93,27 @@ public class Document {
 
     public String getContentType() {
         return contentType;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        if (category != null) {
+            category = category.trim();
+
+            if (category.isEmpty()) {
+                category = null;
+            }
+
+            if (category != null && category.length() > 100) {
+                throw new IllegalArgumentException(
+                        "Category must not exceed 100 characters.");
+            }
+        }
+
+        this.category = category;
     }
 
     public Long getSizeBytes() {
