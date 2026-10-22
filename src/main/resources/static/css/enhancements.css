@@ -167,3 +167,289 @@ button,
         scroll-behavior: auto !important;
     }
 }
+
+/* TRUSTVAULT_PREMIUM_DASHBOARD_V1 */
+/* Visual refinement only: preserve existing application behavior. */
+
+:root {
+    color-scheme: light;
+    --tv-focus-ring: 0 0 0 3px rgba(124, 58, 237, .2);
+    --tv-radius-card: 16px;
+    --tv-border-hover: #c4b5fd;
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 90px;
+}
+
+body {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+[tabindex]:not([tabindex="-1"]) {
+    -webkit-tap-highlight-color: transparent;
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--primary, #7c3aed);
+    outline-offset: 3px;
+    box-shadow: var(--tv-focus-ring);
+}
+
+:where(input, select, textarea) {
+    max-width: 100%;
+    accent-color: var(--primary, #7c3aed);
+}
+
+::selection {
+    color: #241b35;
+    background: #ddd6fe;
+}
+
+.cards {
+    gap: 18px;
+}
+
+.cards .card {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    border: 1px solid var(--border, #ebe5f5);
+    border-radius: var(--tv-radius-card);
+    background: linear-gradient(145deg, #fff 0%, #fcfaff 100%);
+    box-shadow: 0 5px 18px rgba(45, 25, 75, .045);
+    transition: border-color .2s ease, box-shadow .2s ease,
+        transform .2s ease;
+}
+
+.cards .card:hover {
+    border-color: var(--tv-border-hover);
+    box-shadow: 0 12px 28px rgba(69, 35, 120, .09);
+    transform: translateY(-2px);
+}
+
+.section {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    border: 1px solid var(--border, #ebe5f5);
+    border-radius: var(--tv-radius-card);
+    background: rgba(255, 255, 255, .97);
+    box-shadow: 0 6px 22px rgba(45, 25, 75, .045);
+}
+
+.section-head {
+    gap: 12px;
+    border-bottom: 1px solid #f0ebf7;
+}
+
+.section-head h2 {
+    letter-spacing: -.025em;
+}
+
+.content > h1 {
+    letter-spacing: -.04em;
+    overflow-wrap: anywhere;
+}
+
+.content > .intro {
+    max-width: 760px;
+    line-height: 1.75;
+}
+
+.nav-item {
+    transition: background-color .18s ease, color .18s ease,
+        transform .18s ease;
+}
+
+.nav-item:hover {
+    transform: translateX(2px);
+}
+
+.upload-form input,
+.upload-form select,
+.upload-form textarea {
+    min-height: 42px;
+    border-radius: 10px;
+}
+
+.upload-form input[type="file"] {
+    max-width: 100%;
+    padding: 10px;
+    border: 1px dashed #c4b5fd;
+    border-radius: 12px;
+    background: #faf8ff;
+}
+
+:where(button, .document-download, .action-button) {
+    transition: filter .16s ease, box-shadow .16s ease,
+        transform .16s ease;
+}
+
+:where(button, .document-download, .action-button):hover {
+    filter: brightness(.98);
+}
+
+.document-row {
+    border-bottom: 1px solid #f1edf7;
+}
+
+.document-row:last-child {
+    border-bottom: 0;
+}
+
+.document-name {
+    overflow-wrap: anywhere;
+}
+
+.notice,
+.status-message {
+    overflow-wrap: anywhere;
+}
+
+.tv-permission-dialog {
+    max-width: min(560px, calc(100vw - 32px));
+    max-height: min(85vh, 760px);
+    overflow: auto;
+    border: 1px solid #e8def8;
+    border-radius: 18px;
+    box-shadow: 0 24px 80px rgba(30, 15, 55, .24);
+}
+
+.tv-permission-dialog::backdrop {
+    background: rgba(24, 12, 42, .48);
+    backdrop-filter: blur(3px);
+}
+
+#activity {
+    scroll-margin-top: 90px;
+}
+
+@media (min-width: 1200px) {
+    .content {
+        min-width: 0;
+    }
+
+    .cards .card {
+        padding: 22px;
+    }
+}
+
+@media (max-width: 760px) {
+    .cards {
+        gap: 12px;
+    }
+
+    .cards .card {
+        border-radius: 13px;
+    }
+
+    .section {
+        border-radius: 13px;
+    }
+
+    .section-head {
+        flex-wrap: wrap;
+    }
+
+    .document-row:hover {
+        background: transparent;
+    }
+
+    .nav-item:hover {
+        transform: none;
+    }
+
+    .tv-permission-dialog {
+        width: calc(100vw - 24px);
+        max-width: none;
+        max-height: 88vh;
+        margin: auto;
+        padding: 18px;
+    }
+}
+
+@media (max-width: 420px) {
+    .content > h1 {
+        font-size: clamp(1.6rem, 8vw, 2.1rem);
+    }
+
+    .upload-form input[type="file"] {
+        font-size: .875rem;
+    }
+
+    .section-head h2 {
+        overflow-wrap: anywhere;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .cards .card,
+    .section,
+    .nav-item,
+    button,
+    .document-download,
+    .action-button {
+        transition: none !important;
+        transform: none !important;
+    }
+}
+/* END TRUSTVAULT_PREMIUM_DASHBOARD_V1 */
+
+/* TRUSTVAULT_STATUS_POLISH_V1 */
+
+/* Make existing feedback messages easier to scan without changing their text. */
+.status-message,
+.notice {
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.status-message:empty {
+    display: none;
+}
+
+.status-message[data-kind="error"] {
+    color: #991b1b;
+    border-color: #fecaca;
+    background: #fff5f5;
+}
+
+.status-message[data-kind="success"] {
+    color: #166534;
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+}
+
+:where(button, input, select, textarea):disabled {
+    cursor: not-allowed;
+    opacity: .68;
+}
+
+:where(input, select, textarea):focus-visible {
+    border-color: var(--primary, #7c3aed);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .status-message,
+    .notice {
+        scroll-behavior: auto;
+    }
+}
+/* END TRUSTVAULT_STATUS_POLISH_V1 */

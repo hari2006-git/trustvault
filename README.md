@@ -136,8 +136,7 @@ On Windows Command Prompt:
 mvnw.cmd test
 ```
 
-A previous development run completed with 11 tests passing. Run the suite again
-against the current checkout and record the actual results before release.
+Latest local verification reported 16 tests, 0 failures, 0 errors, and 0 skipped. The packaged JAR was present. These results should be reconfirmed from the latest Surefire reports if the code changes.
 
 ## Security and operational notes
 
@@ -163,3 +162,20 @@ environment.
 - `TRUSTVAULT_ROADMAP.md` — implementation and verification checklist
 - `THREATS.md` — initial threat model and security testing plan
 - `PROMPTS.md` — AI assistance log
+
+## Submission links
+
+- Source repository: https://github.com/hari2006-git/trustvault
+- Deployed application: https://trustvault-6owi.onrender.com
+
+## Current verification status
+
+Latest local verification reported 16 tests, 0 failures, 0 errors, and
+0 skipped. The packaged application JAR was present. The deployed site
+responded with HTTP 200 and redirected to `/login`.
+
+These checks confirm the reported automated test result, build artifact,
+and login-page response. They do not establish that every deployed
+authentication, document authorization, permission revocation, and audit
+workflow has passed end-to-end verification. Complete those checks before
+claiming full submission readiness or production readiness.

@@ -5,3 +5,7 @@ private-storage/
 .vscode/
 *.log
 .DS_Store
+/.trustvault-repair-backup/
+/.trustvault-final-report.txt
+/src/main/resources/static/index.html.backup
+/src/main/resources/static/js/app.js.backup
