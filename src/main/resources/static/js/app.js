@@ -575,6 +575,112 @@ document.addEventListener("DOMContentLoaded", () => {
         return button;
     }
 
+    function createVersionHistoryButton(item, panel) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "document-share";
+        button.textContent = "Version history";
+        button.setAttribute(
+            "aria-label",
+            `View version history for ${item.originalName || "document"}`
+        );
+
+        let loaded = false;
+
+        button.addEventListener("click", async () => {
+            if (!panel.hidden) {
+                panel.hidden = true;
+                return;
+            }
+
+            panel.hidden = false;
+            if (loaded) return;
+
+            panel.replaceChildren();
+            const status = document.createElement("p");
+            status.textContent = "Loading version history...";
+            panel.appendChild(status);
+            button.disabled = true;
+
+            try {
+                const response = await fetch(
+                    `/api/documents/${encodeURIComponent(item.id)}/versions`,
+                    {
+                        credentials: "same-origin",
+                        headers: { Accept: "application/json" }
+                    }
+                );
+
+                if (!response.ok) {
+                    const message = await response.text();
+                    throw new Error(
+                        message || `Could not load history (HTTP ${response.status}).`
+                    );
+                }
+
+                const versions = await response.json();
+                panel.replaceChildren();
+                loaded = true;
+
+                const heading = document.createElement("h4");
+                heading.textContent = "Previous versions";
+                panel.appendChild(heading);
+
+                if (!Array.isArray(versions) || versions.length === 0) {
+                    const empty = document.createElement("p");
+                    empty.textContent =
+                        "No previous versions yet. Previous versions appear after a document is replaced.";
+                    panel.appendChild(empty);
+                    return;
+                }
+
+                for (const version of versions) {
+                    const entry = document.createElement("div");
+                    entry.className = "document-version-item";
+
+                    const title = document.createElement("strong");
+                    title.textContent =
+                        `Version ${version.versionNumber} — ${version.originalName || "Document"}`;
+
+                    const details = document.createElement("p");
+                    const size = Number(version.sizeBytes || 0);
+                    const sizeLabel = size < 1024 * 1024
+                        ? `${(size / 1024).toFixed(1)} KB`
+                        : `${(size / (1024 * 1024)).toFixed(2)} MB`;
+                    const created = version.createdAt
+                        ? new Date(version.createdAt).toLocaleString()
+                        : "Date unavailable";
+                    details.textContent =
+                        `${sizeLabel} · ${version.createdByEmail || "Unknown user"} · ${created}`;
+
+                    const download = document.createElement("a");
+                    download.className = "document-download";
+                    download.textContent = "↓ Download this version";
+                    download.href =
+                        `/api/documents/${encodeURIComponent(item.id)}/versions/${encodeURIComponent(version.id)}/download`;
+                    download.setAttribute(
+                        "aria-label",
+                        `Download version ${version.versionNumber}`
+                    );
+
+                    entry.append(title, details, download);
+                    panel.appendChild(entry);
+                }
+            } catch (error) {
+                panel.replaceChildren();
+                const message = document.createElement("p");
+                message.textContent =
+                    error.message || "Unable to load version history.";
+                panel.appendChild(message);
+                loaded = false;
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        return button;
+    }
+
     function makeDocumentRow(item) {
         const row = document.createElement("article");
         row.className = "document-row";
@@ -613,6 +719,12 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
         actions.appendChild(download);
+
+        const historyPanel = document.createElement("section");
+        historyPanel.className = "document-version-history";
+        historyPanel.hidden = true;
+        historyPanel.setAttribute("aria-label", "Document version history");
+        actions.appendChild(createVersionHistoryButton(item, historyPanel));
 
         const canManageDocument =
             currentUser !== null
@@ -682,7 +794,7 @@ document.addEventListener("DOMContentLoaded", () => {
         actions.appendChild(deleteButton);
         }
 
-        row.append(left, actions);
+        row.append(left, actions, historyPanel);
 
         return row;
     }

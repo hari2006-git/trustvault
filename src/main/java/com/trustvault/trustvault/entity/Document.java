@@ -140,6 +140,17 @@ public class Document {
         return owner;
     }
 
+    public void replaceContent(String originalName, String storageKey, String contentType, Long sizeBytes, String checksumSha256) {
+        if (originalName == null || originalName.isBlank() || originalName.length() > 255) throw new IllegalArgumentException("Invalid filename.");
+        if (storageKey == null || storageKey.isBlank()) throw new IllegalArgumentException("Storage key is required.");
+        if (sizeBytes == null || sizeBytes < 0) throw new IllegalArgumentException("Invalid file size.");
+        this.originalName = originalName;
+        this.storageKey = storageKey;
+        this.contentType = contentType;
+        this.sizeBytes = sizeBytes;
+        this.checksumSha256 = checksumSha256;
+    }
+
     public boolean isDeleted() {
         return deletedAt != null;
     }
