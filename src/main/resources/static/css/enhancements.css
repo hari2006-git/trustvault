@@ -494,3 +494,197 @@ textarea,
 .document-version-item .document-download {
     white-space: nowrap;
 }
+
+/* TRUSTVAULT_ELECTRIC_VIOLET_V2 */
+/* Visual theme overrides only — preserve existing application behavior. */
+
+:root {
+    --tv-electric: #8b5cf6;
+    --tv-electric-bright: #a855f7;
+    --tv-electric-deep: #6d28d9;
+    --tv-indigo: #312064;
+    --tv-violet-glow: rgba(139, 92, 246, .24);
+    --tv-violet-border: #c4b5fd;
+}
+
+body {
+    background-color: #f7f5ff;
+    background-image:
+        radial-gradient(
+            ellipse at 82% 0%,
+            rgba(168, 85, 247, .14),
+            transparent 36%
+        ),
+        radial-gradient(
+            ellipse at 15% 30%,
+            rgba(99, 102, 241, .07),
+            transparent 38%
+        );
+}
+
+aside {
+    background: linear-gradient(
+        165deg,
+        #482080 0%,
+        #30205f 48%,
+        #1d123b 100%
+    );
+    box-shadow: 5px 0 28px rgba(49, 32, 100, .10);
+}
+
+.brand-icon {
+    background: linear-gradient(
+        135deg,
+        #c4b5fd 0%,
+        #a855f7 48%,
+        #7c3aed 100%
+    );
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, .18),
+        0 0 25px rgba(168, 85, 247, .28);
+}
+
+.nav-item {
+    border-radius: 12px;
+    transition:
+        background .2s ease,
+        border-color .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease;
+}
+
+.nav-item:hover {
+    background: rgba(196, 181, 253, .13);
+    border-color: rgba(196, 181, 253, .16);
+}
+
+.nav-item.active {
+    background: linear-gradient(
+        105deg,
+        rgba(168, 85, 247, .34),
+        rgba(124, 58, 237, .19)
+    );
+    border-color: rgba(196, 181, 253, .34);
+    box-shadow: inset 3px 0 0 #c4b5fd;
+}
+
+.content > .eyebrow {
+    border-color: #ddd0ff;
+    background: linear-gradient(110deg, #f3e8ff, #ede9fe);
+    color: #6d28d9;
+}
+
+.content > h1 {
+    color: #261347;
+    letter-spacing: -.045em;
+}
+
+.cards .card {
+    border-color: #e9e1fb;
+    background: linear-gradient(145deg, #ffffff 0%, #faf7ff 100%);
+    box-shadow: 0 7px 24px rgba(76, 29, 149, .065);
+}
+
+.cards .card:hover {
+    border-color: #b99afc;
+    box-shadow:
+        0 13px 32px rgba(109, 40, 217, .11),
+        0 0 0 1px rgba(139, 92, 246, .06);
+    transform: translateY(-3px);
+}
+
+.section {
+    border-color: #e8e0f7;
+    background: rgba(255, 255, 255, .97);
+    box-shadow: 0 8px 28px rgba(49, 32, 100, .055);
+}
+
+.section:hover {
+    border-color: #c4b5fd;
+    box-shadow: 0 13px 34px rgba(109, 40, 217, .09);
+}
+
+.section-head {
+    background: linear-gradient(110deg, #ffffff, #f8f4ff);
+    border-bottom-color: #eee7fb;
+}
+
+button,
+.action-button,
+.secondary-button,
+.document-download {
+    transition:
+        color .18s ease,
+        background .18s ease,
+        border-color .18s ease,
+        box-shadow .18s ease,
+        transform .18s ease;
+}
+
+.action-button,
+.document-actions .document-share {
+    background: linear-gradient(115deg, #8b5cf6, #6d28d9);
+    border-color: #7c3aed;
+    box-shadow: 0 4px 12px rgba(109, 40, 217, .20);
+}
+
+.action-button:hover,
+.document-actions .document-share:hover {
+    background: linear-gradient(115deg, #a855f7, #7c3aed);
+    border-color: #8b5cf6;
+    box-shadow:
+        0 6px 18px rgba(124, 58, 237, .29),
+        0 0 0 3px rgba(167, 139, 250, .10);
+    transform: translateY(-1px);
+}
+
+.secondary-button {
+    border-color: #d8c9fa;
+}
+
+.secondary-button:hover {
+    border-color: #a78bfa;
+    background: #f5f0ff;
+    color: #6d28d9;
+    box-shadow: 0 3px 12px rgba(109, 40, 217, .08);
+}
+
+.upload-form input[type="file"]:hover {
+    border-color: #a78bfa;
+    background: #f5f0ff;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, .07);
+}
+
+.document-row:hover {
+    background: linear-gradient(
+        90deg,
+        rgba(237, 233, 254, .8),
+        rgba(250, 247, 255, .35)
+    );
+}
+
+.document-row:hover .document-name {
+    color: #7c3aed;
+}
+
+.document-actions .document-share:focus-visible,
+.document-actions .document-delete:focus-visible,
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline-color: #a78bfa;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, .19);
+}
+
+.notice {
+    border-color: #e4d7ff;
+    box-shadow: 0 5px 18px rgba(109, 40, 217, .06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+    }
+}
+
