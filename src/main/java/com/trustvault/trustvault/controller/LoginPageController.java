@@ -52,6 +52,12 @@ public class LoginPageController {
                     <div class="tv-splash-content">
                         <div class="tv-emblem-scene" aria-hidden="true">
                             <div class="tv-emblem-glow"></div>
+      <span class="tv-fragment tv-fragment--one"></span>
+      <span class="tv-fragment tv-fragment--two"></span>
+      <span class="tv-fragment tv-fragment--three"></span>
+      <span class="tv-fragment tv-fragment--four"></span>
+      <span class="tv-fragment tv-fragment--five"></span>
+      <span class="tv-fragment tv-fragment--six"></span>
                             <div class="tv-emblem-orbit"></div>
                             <svg class="tv-emblem" viewBox="0 0 120 140"
                                  xmlns="http://www.w3.org/2000/svg">
@@ -327,7 +333,7 @@ public class LoginPageController {
                             () => splash.remove(),
                             reducedMotion ? 0 : 550
                         );
-                    }, reducedMotion ? 250 : 1750);
+                    }, 6000);
                 })();
                 </script>
                 </body>

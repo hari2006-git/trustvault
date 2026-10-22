@@ -864,3 +864,82 @@ body {
         0 12px 28px rgba(91, 33, 182, 0.14);
     transform: translateY(-2px);
 }
+
+/* TrustVault: expanded 3D emblem assembly */
+.tv-emblem-scene {
+  position: relative;
+  width: min(270px, 78vw);
+  height: 260px;
+  margin-inline: auto;
+  perspective: 1100px;
+  isolation: isolate;
+}
+.tv-emblem-scene .tv-emblem {
+  position: relative;
+  z-index: 2;
+  width: 174px;
+  height: 204px;
+  max-width: 90%;
+  overflow: visible;
+  filter: drop-shadow(0 16px 28px rgba(10, 5, 40, .38));
+}
+.tv-emblem-scene .tv-emblem-glow,
+.tv-emblem-scene .tv-emblem-orbit {
+  pointer-events: none;
+}
+.tv-fragment {
+  position: absolute;
+  z-index: 3;
+  left: calc(50% - 18px);
+  top: calc(50% - 18px);
+  display: block;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f4eaff 0%, #a879ff 38%, #6338df 72%, #2c176d 100%);
+  box-shadow: inset -7px -7px 12px rgba(20,8,70,.35),
+              inset 5px 5px 10px rgba(255,255,255,.42),
+              0 8px 24px rgba(115,65,255,.32);
+  opacity: 0;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+  pointer-events: none;
+  animation: tv-fragment-assemble 5.8s cubic-bezier(.18,.7,.18,1) both;
+}
+.tv-fragment--one { --fx:-125px; --fy:-100px; --fr:-130deg; }
+.tv-fragment--two { --fx:120px; --fy:-110px; --fr:145deg; animation-delay:.18s; }
+.tv-fragment--three { --fx:-145px; --fy:15px; --fr:110deg; animation-delay:.3s; }
+.tv-fragment--four { --fx:145px; --fy:20px; --fr:-155deg; animation-delay:.12s; }
+.tv-fragment--five { --fx:-90px; --fy:125px; --fr:170deg; animation-delay:.24s; }
+.tv-fragment--six { --fx:95px; --fy:120px; --fr:-120deg; animation-delay:.36s; }
+
+@keyframes tv-fragment-assemble {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--fx),var(--fy),-180px)
+               rotateX(var(--fr)) rotateY(var(--fr)) scale(.45);
+  }
+  12% { opacity: 1; }
+  52% {
+    opacity: 1;
+    transform: translate3d(calc(var(--fx)*.38),calc(var(--fy)*.38),100px)
+               rotateX(calc(var(--fr)*.45)) rotateY(calc(var(--fr)*.45)) scale(1.12);
+  }
+  83% {
+    opacity: .95;
+    transform: translate3d(0,0,35px) rotateX(0) rotateY(0) scale(.85);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0,0,0) rotateX(0) rotateY(0) scale(.25);
+  }
+}
+@media (max-width: 480px) {
+  .tv-emblem-scene { width: 220px; height: 225px; }
+  .tv-emblem-scene .tv-emblem { width: 145px; height: 174px; }
+  .tv-fragment { width: 28px; height: 28px; left: calc(50% - 14px); top: calc(50% - 14px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tv-fragment { display: none !important; animation: none !important; }
+}
