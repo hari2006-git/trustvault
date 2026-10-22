@@ -47,6 +47,60 @@ public class LoginPageController {
                     <link rel="stylesheet" href="/css/auth.css">
                 </head>
                 <body>
+                <div class="tv-splash" role="status"
+                     aria-label="Loading TrustVault">
+                    <div class="tv-splash-content">
+                        <div class="tv-emblem-scene" aria-hidden="true">
+                            <div class="tv-emblem-glow"></div>
+                            <div class="tv-emblem-orbit"></div>
+                            <svg class="tv-emblem" viewBox="0 0 120 140"
+                                 xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="tvShieldGradient"
+                                        x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stop-color="#d8c7ff"/>
+                                        <stop offset="45%" stop-color="#925cff"/>
+                                        <stop offset="100%" stop-color="#5520cf"/>
+                                    </linearGradient>
+                                    <linearGradient id="tvLockGradient"
+                                        x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stop-color="#ffffff"/>
+                                        <stop offset="100%" stop-color="#c8b2ff"/>
+                                    </linearGradient>
+                                </defs>
+                                <path class="tv-shield"
+                                    d="M60 7 105 25 V62 C105 91 85 115 60 132
+                                       35 115 15 91 15 62 V25 Z"
+                                    fill="url(#tvShieldGradient)"
+                                    stroke="#e5d9ff" stroke-width="2.5"
+                                    stroke-linejoin="round"/>
+                                <path
+                                    d="M60 18 94 32 V62 C94 83 80 102 60 116
+                                       40 102 26 83 26 62 V32 Z"
+                                    fill="none" stroke="#ffffff"
+                                    stroke-opacity=".3" stroke-width="1.5"/>
+                                <path d="M44 62 V49 a16 16 0 0 1 32 0 V62"
+                                    fill="none" stroke="url(#tvLockGradient)"
+                                    stroke-width="7" stroke-linecap="round"/>
+                                <rect x="35" y="59" width="50" height="38"
+                                    rx="9" fill="url(#tvLockGradient)"
+                                    stroke="#ffffff" stroke-width="1.5"/>
+                                <circle cx="60" cy="75" r="5" fill="#6634ce"/>
+                                <path d="M60 79 V85" stroke="#6634ce"
+                                    stroke-width="4" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div class="tv-splash-brand">
+                            Trust<span>Vault</span>
+                        </div>
+                        <p class="tv-splash-tagline">
+                            Your documents. Your control.
+                        </p>
+                        <div class="tv-splash-progress" aria-hidden="true">
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
                 <div class="auth-page">
 
                     <section class="auth-story">
@@ -159,17 +213,17 @@ public class LoginPageController {
                                 <h2 id="auth-role-heading">Choose your workspace</h2>
                                 <p class="auth-role-intro">Your assigned account role determines your permissions.</p>
                                 <div class="auth-role-grid">
-                                    <article class="auth-role-card auth-role-admin">
+                                    <article class="auth-role-card auth-role-admin" tabindex="0" role="button" aria-pressed="false" data-workspace-role="ADMIN">
                                         <svg class="auth-role-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 8v6m-3-3h6"/></svg>
                                         <h3>Admin</h3>
                                         <p>Manage users and administrative features permitted to your account.</p>
                                     </article>
-                                    <article class="auth-role-card auth-role-owner">
+                                    <article class="auth-role-card auth-role-owner" tabindex="0" role="button" aria-pressed="false" data-workspace-role="OWNER">
                                         <svg class="auth-role-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg>
                                         <h3>Owner</h3>
                                         <p>Manage your documents and grant or revoke access.</p>
                                     </article>
-                                    <article class="auth-role-card auth-role-viewer">
+                                    <article class="auth-role-card auth-role-viewer" tabindex="0" role="button" aria-pressed="false" data-workspace-role="VIEWER">
                                         <svg class="auth-role-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
                                         <h3>Viewer</h3>
                                         <p>View and download documents you are authorized to access.</p>
@@ -198,6 +252,84 @@ public class LoginPageController {
                         </section>
                     </main>
                 </div>
+                <script>
+                (() => {
+                    const cards = Array.from(
+                        document.querySelectorAll("[data-workspace-role]")
+                    );
+                    const form = document.querySelector('form[action="/login"]');
+
+                    function selectCard(card) {
+                        cards.forEach(item => {
+                            const selected = item === card;
+                            item.classList.toggle("is-selected", selected);
+                            item.setAttribute("aria-pressed", String(selected));
+                        });
+
+                        try {
+                            sessionStorage.setItem(
+                                "trustvaultSelectedWorkspace",
+                                card.dataset.workspaceRole
+                            );
+                        } catch (_) {
+                            // Selection is a visual preference, not an authority.
+                        }
+                    }
+
+                    cards.forEach(card => {
+                        card.addEventListener("click", () => selectCard(card));
+                        card.addEventListener("keydown", event => {
+                            if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                selectCard(card);
+                            }
+                        });
+                    });
+
+                    if (form) {
+                        form.addEventListener("submit", () => {
+                            const selected = cards.find(
+                                card => card.getAttribute("aria-pressed") === "true"
+                            );
+                            if (selected) selectCard(selected);
+                        });
+                    }
+                })();
+                </script>
+                <script>
+                (() => {
+                    const splash = document.querySelector(".tv-splash");
+                    if (!splash) return;
+
+                    const params = new URLSearchParams(window.location.search);
+                    const reducedMotion = window.matchMedia(
+                        "(prefers-reduced-motion: reduce)"
+                    ).matches;
+
+                    let alreadySeen = false;
+                    try {
+                        alreadySeen =
+                            sessionStorage.getItem("trustvaultSplashSeen") === "1";
+                    } catch (_) {}
+
+                    if (params.has("error") || params.has("logout") || alreadySeen) {
+                        splash.remove();
+                        return;
+                    }
+
+                    try {
+                        sessionStorage.setItem("trustvaultSplashSeen", "1");
+                    } catch (_) {}
+
+                    window.setTimeout(() => {
+                        splash.classList.add("tv-splash--leaving");
+                        window.setTimeout(
+                            () => splash.remove(),
+                            reducedMotion ? 0 : 550
+                        );
+                    }, reducedMotion ? 250 : 1750);
+                })();
+                </script>
                 </body>
                 </html>
                 """;

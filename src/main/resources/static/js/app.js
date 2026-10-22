@@ -66,6 +66,16 @@ document.addEventListener("DOMContentLoaded", () => {
             currentUser.displayName || currentUser.email || "User";
         const role = currentUser.role || "UNKNOWN";
 
+        // The server-authenticated role is authoritative; login-card selection
+        // never grants permissions or changes this value.
+        document.documentElement.dataset.accountRole = role;
+
+        try {
+            sessionStorage.removeItem("trustvaultSelectedWorkspace");
+        } catch (_) {
+            // Storage may be unavailable; role authorization remains server-side.
+        }
+
         const roleLabel = document.getElementById("currentUserRole");
         const nameLabel = document.getElementById("currentUserName");
         const headerName = document.getElementById("headerUserName");
