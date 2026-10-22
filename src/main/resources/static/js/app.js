@@ -61,6 +61,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         currentUser = await response.json();
+        const roleLabel = document.getElementById("currentUserRole");
+const nameLabel = document.getElementById("currentUserName");
+
+if (roleLabel) {
+    roleLabel.textContent = currentUser.role;
+}
+
+if (nameLabel) {
+    nameLabel.textContent = currentUser.displayName || currentUser.email;
+}
 
         if (uploadForm) {
             uploadForm.hidden = currentUser.role !== "OWNER";
