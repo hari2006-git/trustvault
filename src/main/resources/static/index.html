@@ -415,6 +415,20 @@
             font-weight: 700;
         }
 
+        .workspace-account {
+            position: relative;
+            z-index: 1;
+            margin-top: 14px;
+            padding: 13px;
+            border: 1px solid #f0eaf7;
+            border-radius: 12px;
+            background: #fcfaff;
+        }
+
+        .workspace-account .card-value {
+            margin-top: 5px;
+        }
+
         /* Sections */
 
         .section {
@@ -1054,19 +1068,19 @@
                         <div class="card-label">Workspace status</div>
                         <div class="card-icon">⌁</div>
                     </div>
-                    <div class="card">
-    <div class="card-top">
-        <div class="card-label">Your account role</div>
-        <div class="card-icon">♙</div>
-    </div>
-    <div class="card-value" id="currentUserRole"
-         style="font-size:23px">
-        Checking...
-    </div>
-    <p class="card-caption" id="currentUserName">
-        Signed-in account
-    </p>
-</div>
+                    <div class="workspace-account">
+                        <div class="card-top">
+                            <div class="card-label">Your account role</div>
+                            <div class="card-icon">♙</div>
+                        </div>
+                        <div class="card-value" id="currentUserRole"
+                             style="font-size:23px">
+                            Checking...
+                        </div>
+                        <p class="card-caption" id="currentUserName">
+                            Signed-in account
+                        </p>
+                    </div>
 
                     <div class="card-value" id="workspaceStatus"
                          style="font-size:23px">
