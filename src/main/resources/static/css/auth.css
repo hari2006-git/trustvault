@@ -520,3 +520,63 @@ body {
         scroll-behavior: auto !important;
     }
 }
+
+/* TrustVault role cards on the login page */
+.auth-role-section {
+    margin: 24px 0;
+}
+
+.auth-role-section > h2 {
+    margin: 0 0 8px;
+    color: var(--auth-ink);
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.auth-role-intro {
+    margin: 0 0 14px;
+    color: var(--auth-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.auth-role-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.auth-role-card {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--auth-border);
+    border-radius: 12px;
+    background: #fff;
+    transition: border-color .2s ease, transform .2s ease;
+}
+
+.auth-role-card:hover {
+    border-color: var(--auth-purple);
+    transform: translateY(-2px);
+}
+
+.auth-role-card h3 {
+    margin: 0 0 7px;
+    color: var(--auth-ink);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.auth-role-card p {
+    margin: 0;
+    color: var(--auth-muted);
+    font-size: 11px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+    .auth-role-grid {
+        grid-template-columns: 1fr;
+    }
+}

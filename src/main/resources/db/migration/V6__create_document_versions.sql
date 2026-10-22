@@ -7,7 +7,7 @@ CREATE TABLE document_versions (
     content_type VARCHAR(255),
     size_bytes BIGINT NOT NULL CHECK (size_bytes >= 0),
     checksum_sha256 VARCHAR(64),
-    created_by UUID NOT NULL REFERENCES users(id),
+    created_by UUID NOT NULL REFERENCES app_users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_document_version_number
         UNIQUE (document_id, version_number)

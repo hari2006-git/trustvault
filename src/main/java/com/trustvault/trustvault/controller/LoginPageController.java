@@ -155,6 +155,44 @@ public class LoginPageController {
                                 </button>
                             </form>
 
+                            <section class="auth-role-section" aria-labelledby="auth-role-heading">
+                                <h2 id="auth-role-heading">Choose your workspace</h2>
+                                <p class="auth-role-intro">Your assigned account role determines your permissions.</p>
+                                <div class="auth-role-grid">
+                                    <article class="auth-role-card">
+                                        <h3>Admin</h3>
+                                        <p>Manage users and administrative features permitted to your account.</p>
+                                    </article>
+                                    <article class="auth-role-card">
+                                        <h3>Owner</h3>
+                                        <p>Manage your documents and grant or revoke access.</p>
+                                    </article>
+                                    <article class="auth-role-card">
+                                        <h3>Viewer</h3>
+                                        <p>View and download documents you are authorized to access.</p>
+                                    </article>
+                                </div>
+                            </section>
+
+                            <section class="auth-role-section" aria-labelledby="auth-role-heading">
+                                <h2 id="auth-role-heading">Choose your workspace</h2>
+                                <p class="auth-role-intro">Your assigned account role determines your permissions.</p>
+                                <div class="auth-role-grid">
+                                    <article class="auth-role-card">
+                                        <h3>Admin</h3>
+                                        <p>Manage users and administrative features permitted to your account.</p>
+                                    </article>
+                                    <article class="auth-role-card">
+                                        <h3>Owner</h3>
+                                        <p>Manage your documents and grant or revoke access.</p>
+                                    </article>
+                                    <article class="auth-role-card">
+                                        <h3>Viewer</h3>
+                                        <p>View and download documents you are authorized to access.</p>
+                                    </article>
+                                </div>
+                            </section>
+
                             <div class="auth-divider"></div>
 
                             <p class="auth-footer">
