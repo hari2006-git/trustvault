@@ -577,6 +577,49 @@ body {
     transition: border-color .2s ease, transform .2s ease;
 }
 
+
+/* Modern outline icons and electric role colors */
+.auth-role-card {
+    position: relative;
+}
+
+.auth-role-icon {
+    display: block;
+    width: 25px;
+    height: 25px;
+    margin-bottom: 10px;
+}
+
+.auth-role-admin {
+    --role-accent: #8b5cf6;
+    border-top: 2px solid var(--role-accent);
+}
+
+.auth-role-owner {
+    --role-accent: #2563eb;
+    border-top: 2px solid var(--role-accent);
+}
+
+.auth-role-viewer {
+    --role-accent: #059669;
+    border-top: 2px solid var(--role-accent);
+}
+
+.auth-role-admin .auth-role-icon,
+.auth-role-admin h3 {
+    color: var(--role-accent);
+}
+
+.auth-role-owner .auth-role-icon,
+.auth-role-owner h3 {
+    color: var(--role-accent);
+}
+
+.auth-role-viewer .auth-role-icon,
+.auth-role-viewer h3 {
+    color: var(--role-accent);
+}
+
 .auth-role-card:hover {
     border-color: var(--auth-purple);
     transform: translateY(-2px);

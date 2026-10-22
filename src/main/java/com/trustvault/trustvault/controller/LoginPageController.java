@@ -159,15 +159,18 @@ public class LoginPageController {
                                 <h2 id="auth-role-heading">Choose your workspace</h2>
                                 <p class="auth-role-intro">Your assigned account role determines your permissions.</p>
                                 <div class="auth-role-grid">
-                                    <article class="auth-role-card">
+                                    <article class="auth-role-card auth-role-admin">
+                                        <svg class="auth-role-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 8v6m-3-3h6"/></svg>
                                         <h3>Admin</h3>
                                         <p>Manage users and administrative features permitted to your account.</p>
                                     </article>
-                                    <article class="auth-role-card">
+                                    <article class="auth-role-card auth-role-owner">
+                                        <svg class="auth-role-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg>
                                         <h3>Owner</h3>
                                         <p>Manage your documents and grant or revoke access.</p>
                                     </article>
-                                    <article class="auth-role-card">
+                                    <article class="auth-role-card auth-role-viewer">
+                                        <svg class="auth-role-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
                                         <h3>Viewer</h3>
                                         <p>View and download documents you are authorized to access.</p>
                                     </article>
