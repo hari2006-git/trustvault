@@ -61,16 +61,38 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         currentUser = await response.json();
+
+        const displayName =
+            currentUser.displayName || currentUser.email || "User";
+        const role = currentUser.role || "UNKNOWN";
+
         const roleLabel = document.getElementById("currentUserRole");
-const nameLabel = document.getElementById("currentUserName");
+        const nameLabel = document.getElementById("currentUserName");
+        const headerName = document.getElementById("headerUserName");
+        const headerRole = document.getElementById("headerUserRole");
+        const headerAvatar = document.getElementById("headerAvatar");
 
-if (roleLabel) {
-    roleLabel.textContent = currentUser.role;
-}
+        if (roleLabel) {
+            roleLabel.textContent = role;
+        }
 
-if (nameLabel) {
-    nameLabel.textContent = currentUser.displayName || currentUser.email;
-}
+        if (nameLabel) {
+            nameLabel.textContent = displayName;
+        }
+
+        if (headerName) {
+            headerName.textContent = displayName;
+        }
+
+        if (headerRole) {
+            headerRole.textContent = role;
+        }
+
+        if (headerAvatar) {
+            headerAvatar.textContent =
+                displayName.trim().charAt(0).toUpperCase() || "U";
+            headerAvatar.setAttribute("aria-label", displayName);
+        }
 
         if (uploadForm) {
             uploadForm.hidden = currentUser.role !== "OWNER";
