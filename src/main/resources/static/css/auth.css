@@ -522,6 +522,28 @@ body {
 }
 
 /* TrustVault role cards on the login page */
+
+/* Lock icon inside the existing violet workspace accent bar */
+.auth-role-section {
+    position: relative;
+}
+
+.auth-role-section::before {
+    content: "🔒";
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    z-index: 2;
+    color: #ffffff;
+    font-size: 18px;
+    line-height: 1;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    pointer-events: none;
+}
+
 .auth-role-section {
     margin: 24px 0;
 }
