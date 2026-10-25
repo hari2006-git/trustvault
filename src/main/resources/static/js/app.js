@@ -743,7 +743,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (canManageDocument) {
             actions.appendChild(createPermissionButton(item));
+        }
 
+        if (canManageDocument) {
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
         deleteButton.className = "document-delete";
