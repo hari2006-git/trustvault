@@ -736,16 +736,27 @@ document.addEventListener("DOMContentLoaded", () => {
         historyPanel.setAttribute("aria-label", "Document version history");
         actions.appendChild(createVersionHistoryButton(item, historyPanel));
 
-        const canManageDocument =
+        // Manage Access has its own ownership check.
+        const canManageAccess =
             currentUser !== null
             && currentUser.role === "OWNER"
-            && String(item.ownerId) === String(currentUser.id);
+            && String(item.ownerId).trim().toLowerCase()
+                === String(currentUser.id).trim().toLowerCase();
 
-        if (canManageDocument) {
+        // Only the document owner can manage access or see Delete.
+        const canDeleteDocument =
+            currentUser !== null
+            && currentUser.role === "OWNER"
+            && item.ownerId != null
+            && currentUser.id != null
+            && String(item.ownerId).trim().toLowerCase()
+                === String(currentUser.id).trim().toLowerCase();
+
+        if (canManageAccess) {
             actions.appendChild(createPermissionButton(item));
         }
 
-        if (canManageDocument) {
+        if (canDeleteDocument) {
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
         deleteButton.className = "document-delete";
