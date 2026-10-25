@@ -1121,7 +1121,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             // Re-run active server search, or render the full list.
-            await searchDocuments();
+            searchDocuments();
         } catch (error) {
             console.error("Could not load documents:", error);
 
